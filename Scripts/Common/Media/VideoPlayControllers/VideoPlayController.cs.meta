@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: a7092bf03eeb38943a1b93528e6001fc
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - videoMonitorPanel: {instanceID: 0}
+  - videoPlayer: {instanceID: 0}
+  - bgmAudioSource: {instanceID: 0}
+  - skipHintTextPrefab: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
