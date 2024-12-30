@@ -62,7 +62,7 @@ namespace TRS.CaptureTool
 
 
 
-        // 바로 저장 ㅋㅋ
+        // 바로 저장
         public virtual void SaveScreenshot()
         {
             screenshotScript.lastScreenshotTexture = screenshot;

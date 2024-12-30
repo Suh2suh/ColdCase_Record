@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Video;
 
-public class VideoPlayController : MonoBehaviour
+public abstract class VideoPlayController : MonoBehaviour
 {
 	#region Variables
 
@@ -57,8 +57,6 @@ public class VideoPlayController : MonoBehaviour
 
 
 	#endregion
-
-
 
 	#region Unity Methods
 	protected virtual void Awake()
@@ -120,16 +118,17 @@ public class VideoPlayController : MonoBehaviour
 	#endregion
 
 
+	public abstract void PlayVideoWithKey(string videoClipKey);
+	/*
+	 * { videoClip = List.Find(videoClipKey);...
+	 *   PrepareVideoClip(videoClip);
+	 * }
+	 */
 
-	public virtual void PlayVideoWithKey(string videoClipKey)  
-	{
-		/*
-		 * videoClip = List.Find(videoClipKey);...
-		 *  PrepareVideoClip(videoClip);
-		 */
-	}
 
-	/// <summary>  Only Function To Play VideoClip  </summary>
+	/// <summary>  
+	/// Only Play VideoClip 
+	/// </summary>
 	public void PlayVideoClip(VideoClip videoClip)
 	{
 		videoPlayer.prepareCompleted += OnVideoPrepareCompleted;
@@ -144,9 +143,9 @@ public class VideoPlayController : MonoBehaviour
 
 
 
-	#region Video Play Process
+	#region [Action]: Video Play Processing
 
-	void OnVideoPrepareCompleted(VideoPlayer source)
+	private void OnVideoPrepareCompleted(VideoPlayer source)
 	{
 		isCurrentVideoControllerPlaying = true;
 
@@ -171,8 +170,10 @@ public class VideoPlayController : MonoBehaviour
 
 
 
-	/// <summary>  videoPlayer.Play();  </summary>
-	void PlayVideoPlayer(VideoPlayer videoPlayer)
+	/// <summary>  
+	/// videoPlayer.Play();  
+	/// </summary>
+	private void PlayVideoPlayer(VideoPlayer videoPlayer)
 	{
 		videoPlayer.Play();
 		CallBackOnVideoPlay();
@@ -181,7 +182,7 @@ public class VideoPlayController : MonoBehaviour
 			StartCoroutine(AlertOnVideoEnd());
 	}
 
-	IEnumerator PlayVideoPlayerWithFade(VideoPlayer videoPlayer)
+	private IEnumerator PlayVideoPlayerWithFade(VideoPlayer videoPlayer)
 	{
 		ActivateMonitorPanel(true);
 		yield return StartCoroutine(FadeInOut(isIn: true));
@@ -193,7 +194,7 @@ public class VideoPlayController : MonoBehaviour
 
 
 
-	IEnumerator AlertOnVideoEnd()
+	private IEnumerator AlertOnVideoEnd()
 	{
 		while(videoPlayer.isPlaying)
 			yield return null;
@@ -205,7 +206,7 @@ public class VideoPlayController : MonoBehaviour
 		if (OnVideoPlayFinished != null) OnVideoPlayFinished();
 	}
 
-	IEnumerator CallBackOnVideoComplete() 
+	private IEnumerator CallBackOnVideoComplete() 
 	{
 		if ( ! isFadeWithPlaying)
 		{
@@ -221,7 +222,7 @@ public class VideoPlayController : MonoBehaviour
 
 
 
-	void PostprocessVideoPlayer()
+	private void PostprocessVideoPlayer()
 	{
 		isCurrentVideoControllerPlaying = false;
 
@@ -231,15 +232,15 @@ public class VideoPlayController : MonoBehaviour
 		videoPlayer.clip = null;
 	}
 
-	IEnumerator PostprocessVideoPlayerWithFade()
+	private IEnumerator PostprocessVideoPlayerWithFade()
 	{
 		ActivateMonitor(false);
 		yield return StartCoroutine(FadeInOut(isIn: false));
 	}
 
 
-	
-	IEnumerator FadeInOut(bool isIn)
+
+	private IEnumerator FadeInOut(bool isIn)
 	{
 		float time = 0f;
 		float lerpT = time / fadeDuration;
@@ -272,10 +273,11 @@ public class VideoPlayController : MonoBehaviour
 	#endregion
 
 
+	#region Utility
 
-	void ActivateMonitorPanel(bool activeStatus)  {  ActivationController.ActivateObj(videoMonitorPanel, activeStatus);  }
+	private void ActivateMonitorPanel(bool activeStatus)  {  ActivationController.ActivateObj(videoMonitorPanel, activeStatus);  }
 
-	void ActivateMonitor(bool activeStatus) 
+	private void ActivateMonitor(bool activeStatus) 
 	{  
 		if (videoMonitor.gameObject.activeSelf != activeStatus)
 		{
@@ -284,7 +286,11 @@ public class VideoPlayController : MonoBehaviour
 		}
 	}
 	
-	void CreateSkipHintText() { if (videoMonitor && ! skipHintTextObj)   skipHintTextObj = Instantiate(skipHintTextPrefab, videoMonitor.transform, false); }
-	void DestroySkiptHintText() { if (skipHintTextObj)   Destroy(skipHintTextObj); }
+	private void CreateSkipHintText() { if (videoMonitor && ! skipHintTextObj)   skipHintTextObj = Instantiate(skipHintTextPrefab, videoMonitor.transform, false); }
+	private void DestroySkiptHintText() { if (skipHintTextObj)   Destroy(skipHintTextObj); }
+
+
+	#endregion
+
 
 }

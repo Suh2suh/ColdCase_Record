@@ -1,6 +1,7 @@
 ﻿using UnityEngine.Events;
 using UnityEngine.EventSystems;
 
+
 public static class EventTriggerLinker
 {
 	public static void LinkEventTriggerTo<T>(EventTrigger targetEventTrigger, EventTriggerType eventTriggerType, UnityAction<T> action) where T : BaseEventData

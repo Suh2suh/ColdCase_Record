@@ -5,8 +5,12 @@ namespace ColdCase.Dialogue.Book.Object
 {
 	public class BookChapterIndexer : MonoBehaviour
 	{
-		TextMeshPro textOnIndexer;
-		MeshRenderer indexerRenderer;
+		#region Private Variables
+		private TextMeshPro textOnIndexer;
+		private MeshRenderer indexerRenderer;
+
+		#endregion
+
 
 		#region Initializers
 
@@ -38,6 +42,7 @@ namespace ColdCase.Dialogue.Book.Object
 
 
 		#endregion
+
 
 		public void ChangeColorTo(Color newColor)
 		{

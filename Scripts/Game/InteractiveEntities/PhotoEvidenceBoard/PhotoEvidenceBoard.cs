@@ -1,13 +1,11 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 
 
 public class PhotoEvidenceBoard : MonoBehaviour
 {
-	[SerializeField] PhotoEvidenceManager photoEvidenceManager;
-	[SerializeField] List<PhotoPin> PickedPhotoPins;
+	[SerializeField] private PhotoEvidenceManager photoEvidenceManager;
+	[SerializeField] private List<PhotoPin> PickedPhotoPins;
 
 
 	#region Unity Methods
@@ -31,34 +29,30 @@ public class PhotoEvidenceBoard : MonoBehaviour
 	#endregion
 
 
-	void LoadExistingPhotoEvidences()
+	private void LoadExistingPhotoEvidences()
 	{
 		foreach (var photoPin in PickedPhotoPins)
 		{
-			Debug.Log(photoPin.name);
-
-			//if (photoEvidenceManager.photoEvidenceDic.ContainsKey(photoPin.PhotoEvidenceType.name))
 			if (photoPin.PhotoEvidenceType.IsObtained)
 			{
 				Texture2D photoTexture = photoEvidenceManager.LoadPhotoEvidenceTexture(photoPin.PhotoEvidenceType.name);
-				Debug.Log(photoPin.PhotoEvidenceType.name + ": " + photoTexture);
 
 				if (photoTexture)
 				{
 					photoPin.ShowPhotoNHideGlitch();
 					photoPin.UpdatePhoto(photoTexture);
-				} else
+				}
+				else
 				{
 					photoPin.HidePhotoNShowGlitch();
 				}
 			}
-
 		}
+
 	}
 
 
-
-	void OnPhotoEvidenceDicUpdated(string evidenceName, Texture2D PhotoTexture)
+	private void OnPhotoEvidenceDicUpdated(string evidenceName, Texture2D PhotoTexture)
 	{
 		foreach (PhotoPin photoPin in PickedPhotoPins)
 		{
@@ -69,18 +63,6 @@ public class PhotoEvidenceBoard : MonoBehaviour
 			}
 		}
 	}
-
-
-
-	//public void ResetTargetPhase()
-	//{
-		//foreach(var photoPin in PickedPhotoPins)
-		//{
-			//var npcPhaseUpdater = photoPin.GetComponentInChildren<PEProgressUpdater>();
-
-			//npcPhaseUpdater.ResetTargetPhase();
-		//}
-	//}
 
 
 }

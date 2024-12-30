@@ -1,13 +1,12 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+
 
 public class InventoryBox : MonoBehaviour
 {
-	[SerializeField] UDictionary<Evidence, GameObject> objectPerEvidence;
-	public UDictionary<Evidence, GameObject> ObjectPerEvidence { get => objectPerEvidence; }
+	[SerializeField] private UDictionary<Evidence, GameObject> objectPerEvidence;
+	[SerializeField] private PlaceInfo placeInfo;
 
-	[SerializeField] PlaceInfo placeInfo;
+	public UDictionary<Evidence, GameObject> ObjectPerEvidence { get => objectPerEvidence; }
 
 
 	#region Unity Methods
@@ -32,16 +31,13 @@ public class InventoryBox : MonoBehaviour
 	#endregion
 
 
-
-	void OnItemObtained(Evidence obtainedEvidence)
+	private void OnItemObtained(Evidence obtainedEvidence)
 	{
 		ActivateObtainedItem(obtainedEvidence);
 	}
 
 
-
-
-	void ActivateObtainedItems()
+	private void ActivateObtainedItems()
 	{
 		foreach(var obtainedEvidence in placeInfo.GetObtainedEvidences())
 		{
@@ -50,19 +46,7 @@ public class InventoryBox : MonoBehaviour
 
 	}
 
-
-	void DeActivateAllItems()
-	{
-		foreach (var item in objectPerEvidence)
-		{
-			var itemObj = item.Value;
-			if (itemObj.activeSelf) itemObj.SetActive(false);
-		}
-	}
-
-
-
-	void ActivateObtainedItem(Evidence obtainedItem)
+	private void ActivateObtainedItem(Evidence obtainedItem)
 	{
 		if (objectPerEvidence.ContainsKey(obtainedItem))
 		{
@@ -72,6 +56,16 @@ public class InventoryBox : MonoBehaviour
 		else
 		{
 			Debug.LogWarning("Obtained Item [" + obtainedItem.name + "] not exists in Inventory Box List! ");
+		}
+	}
+
+
+	private void DeActivateAllItems()
+	{
+		foreach (var item in objectPerEvidence)
+		{
+			var itemObj = item.Value;
+			if (itemObj.activeSelf) itemObj.SetActive(false);
 		}
 	}
 

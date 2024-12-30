@@ -23,7 +23,6 @@ public abstract class PlayerCheckStatus : MonoBehaviour
 	// if Transform == this.transform -> isCheckedByPlayer
 
 
-
 	public abstract void OnCheckedByPlayer();
 
 }

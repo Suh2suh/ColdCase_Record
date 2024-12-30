@@ -6,40 +6,43 @@ namespace ColdCase.Dialogue.Book.Utility
 {
 	public class BookChapterIndexerCreator: MonoBehaviour
 	{
-		// TODO: 나중에 색 모듈화 -> ChapterNavigator에서? selected Indexer, else Indexer Color 지정하도록 하기
-		readonly int indexerLayer = 10;   // this should be match with navigator's indexer layer
+		#region Setting Variables
+		[SerializeField, Space(15)] private Transform chapterIndexerFolder;
+		[SerializeField] private GameObject chapterIndexerPrefab;
+		[SerializeField] private float indexerGap;
 
-		[SerializeField, Space(15)] Transform chapterIndexerFolder;
-		[SerializeField] GameObject chapterIndexerPrefab;
-		[SerializeField] float indexerGap;
-		float indexerHeight;
+		#endregion
 
-		Dictionary<string, BookChapterIndexer> bookChapterIndexerDic;
+		#region Private Variables
+		private readonly int indexerLayer = 10;   // this should be match with navigator's indexer layer
+		private float indexerHeight;
+		private Dictionary<string, BookChapterIndexer> bookChapterIndexerDic;
+
+		#endregion
 		public Dictionary<string, BookChapterIndexer> BookChapterIndexerDic { get => bookChapterIndexerDic; }
-		
 
+
+		#region Initialization
 
 		private void Awake()
 		{
 			if(bookChapterIndexerDic == null) Initialize();
 		}
 
+		private void Initialize()
+		{
+			if (chapterIndexerPrefab != null) indexerHeight = chapterIndexerPrefab.transform.localScale.y;
+			bookChapterIndexerDic = new();
+		}
+
+
+		#endregion
+
 
 		public BookChapterIndexer CreateNpcIndexer(string chapterName)
 		{
-			if (chapterIndexerPrefab == null || chapterIndexerFolder == null)
-			{
-				Debug.LogWarning("[Prefab Instantiation Failed] Prefab or Folder is Empty!");
-				return null;
-			}
-			if (bookChapterIndexerDic == null) Initialize();
-
-
-			var indexer = Instantiate(chapterIndexerPrefab, chapterIndexerFolder, false);
-			var indexerCreationPos = new Vector3(0, -(chapterIndexerFolder.childCount - 1) * (indexerHeight + indexerGap), 0);
-			indexer.transform.localPosition = indexerCreationPos;
-			indexer.name = chapterName;
-			if (indexer.layer != indexerLayer) indexer.layer = indexerLayer;
+			var indexer = InstantiateNpcIndexer(chapterName);
+			if (indexer == null)  return null;
 
 			var indexerController = indexer.GetComponent<BookChapterIndexer>() ?? indexer.AddComponent<BookChapterIndexer>();
 			indexerController.Initialize(chapterName);
@@ -51,6 +54,20 @@ namespace ColdCase.Dialogue.Book.Utility
 
 		public BookChapterIndexer CreateNpcIndexer(string chapterName, Color indexerColor)
 		{
+			var indexer = InstantiateNpcIndexer(chapterName);
+			if (indexer == null)  return null;
+
+			var indexerController = indexer.GetComponent<BookChapterIndexer>() ?? indexer.AddComponent<BookChapterIndexer>();
+			indexerController.Initialize(chapterName, indexerColor);
+
+			bookChapterIndexerDic[chapterName] = indexerController;
+
+			return indexerController;
+		}
+
+
+		private GameObject InstantiateNpcIndexer(string chapterName)
+		{
 			if (chapterIndexerPrefab == null || chapterIndexerFolder == null)
 			{
 				Debug.LogWarning("[Prefab Instantiation Failed] Prefab or Folder is Empty!");
@@ -65,20 +82,9 @@ namespace ColdCase.Dialogue.Book.Utility
 			indexer.name = chapterName;
 			if (indexer.layer != indexerLayer) indexer.layer = indexerLayer;
 
-			var indexerController = indexer.GetComponent<BookChapterIndexer>() ?? indexer.AddComponent<BookChapterIndexer>();
-			indexerController.Initialize(chapterName, indexerColor);
-
-			bookChapterIndexerDic[chapterName] = indexerController;
-
-			return indexerController;
+			return indexer;
 		}
 
-
-		void Initialize()
-		{
-			if (chapterIndexerPrefab != null) indexerHeight = chapterIndexerPrefab.transform.localScale.y;
-			bookChapterIndexerDic = new();
-		}
 
 	}
 }

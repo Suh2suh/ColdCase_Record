@@ -1,18 +1,18 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using TMPro;
 using UnityEngine;
 using UnityEngine.Video;
 
 
-// TODO: monobehaviour굳이필요없음 나중에 고치기
 public class NarrationSubtitlePlayer_Duration : NarrationSubtitlePlayer
 {
-	List<NarrativeSubtitleData_Duration> subtitleDataList;
-	VideoPlayer syncVideoPlayer;
+	#region Private Varaibles
+	private List<NarrativeSubtitleData_Duration> subtitleDataList;
+	private VideoPlayer syncVideoPlayer;
 
+	private int subtitleIndex;
 
-	int subtitleIndex;
+	#endregion
 
 
 	#region Unity Methods
@@ -33,8 +33,6 @@ public class NarrationSubtitlePlayer_Duration : NarrationSubtitlePlayer
 	#endregion
 
 
-
-	// ready 후 불러오기 때문에, 굳이 clip까지 따질필요 X.
 	public void PlaySubtitle(VideoPlayer newVideoPlayer, List<NarrativeSubtitleData_Duration> newSubtitleDatas)
 	{
 		syncVideoPlayer = newVideoPlayer;
@@ -46,8 +44,7 @@ public class NarrationSubtitlePlayer_Duration : NarrationSubtitlePlayer
 	}
 
 
-
-	IEnumerator ShowSubtitlesPerNarration(NarrativeSubtitleData_Duration subtitleData)
+	private IEnumerator ShowSubtitlesPerNarration(NarrativeSubtitleData_Duration subtitleData)
 	{
 		yield return StartCoroutine(ShowSubtitle("Narration", subtitleData.key));
 
@@ -61,10 +58,10 @@ public class NarrationSubtitlePlayer_Duration : NarrationSubtitlePlayer
 		{
 			ActivateNarrationPanel(false);
 		}
-
 	}
 
-	void TryPlayNextSubtitle()
+
+	private void TryPlayNextSubtitle()
 	{
 		subtitleIndex++;
 

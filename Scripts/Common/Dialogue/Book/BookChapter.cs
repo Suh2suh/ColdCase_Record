@@ -12,10 +12,15 @@ namespace ColdCase.Dialogue.Book.Object
 		List<GameObject> bookPageObjs;
 		[HideInInspector] public List<GameObject> BookPageObjs { get => bookPageObjs; }
 
+
 		private void Awake()
 		{
 			bookPageObjs = new();
-			foreach (var bookPage in BookPages) bookPageObjs.Add(bookPage.gameObject);
+			foreach (var bookPage in BookPages)
+			{
+				if(bookPage != null)
+					bookPageObjs.Add(bookPage.gameObject);
+			}
 		}
 	}
 }

@@ -1,7 +1,7 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Video;
+
 
 [CreateAssetMenu(fileName = "VideoSubtitleData", menuName = "ScriptableObjects/Objects/VideoSubtitleData", order = 2)]
 public class VideoSubtitleData : ScriptableObject
@@ -15,4 +15,6 @@ public class VideoSubtitleData : ScriptableObject
 	public List<NarrativeSubtitleData_Time> SubtitleData { get => subtitleData; }
 
 	#endregion
+
+
 }

@@ -4,7 +4,6 @@ using UnityEngine;
 
 
 /// <summary>  Should be attatched to obj with 'FirstPersonAIO' Component(=Player)  </summary>
-/// TODO: 나중에 코드 정리 하기
 public class InteractionLimitController : MonoBehaviour
 {
 	[SerializeField] PlayerInfo playerInfo;
@@ -22,15 +21,13 @@ public class InteractionLimitController : MonoBehaviour
 		isPlayerMovable = false;
 
 
-		// TODO: 이건 나중에 Game Initializer로 따로 빼든지 하기
+		// TODO: Move to Game Initializer
 		GameModeManager.CurrentGameMode = GameMode.Game;
 	}
 
 	private void Start()
 	{
-		//if(playerInfo.Phase >= 'A' && playerInfo.Phase != 'Z')
-
-		// TODO: 이건 나중에 Game Initializer로 따로 빼든지 하기
+		// TODO: Move to Game Initializer
 		PlayerStatusManager.SetInterStatus(InteractionStatus.None);
 	}
 
@@ -41,15 +38,16 @@ public class InteractionLimitController : MonoBehaviour
 	}
 
 
-	// 나중에 delegate로 바꾸기
 	private void Update()
 	{
+		// TODO: Delegate
 		if(PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.Photo)
 		{
 			if(PhotoMaker.isPhotoTaking) DisablePlayerMovement();
 		}
 
 	}
+
 
 	#endregion
 
@@ -67,8 +65,7 @@ public class InteractionLimitController : MonoBehaviour
 
 				break;
 			case GameMode.Game:
-				ManagePlayerInteraction();   // GameMode가 아닐 때 interaction status가 바뀐 경우가 있음
-				                                              // ㄴ 다시 Update 해줌
+				ManagePlayerInteraction();
 
 				break;
 		}
@@ -80,6 +77,9 @@ public class InteractionLimitController : MonoBehaviour
 
 		ManagePlayerInteraction();
 	}
+
+
+	#region [Action]: Player Interaction Management
 
 	void ManagePlayerInteraction()
 	{
@@ -93,7 +93,6 @@ public class InteractionLimitController : MonoBehaviour
 	}
 
 
-
 	List<InteractionStatus> playerMoveInterStatus = new() { InteractionStatus.None, InteractionStatus.Photo /*(사진 찍는 순간 빼고)*/ };
 	void ManagePlayerMovementUnder(InteractionStatus currentInterStatus)
 	{
@@ -101,22 +100,7 @@ public class InteractionLimitController : MonoBehaviour
 			EnablePlayerMovement();
 		else
 			DisablePlayerMovement();
-	/*
-		switch (currentInterStatus)
-		{
-			case InteractionStatus.None:
-			case InteractionStatus.Photo: //(사진 찍는 순간 빼고)
-				EnablePlayerMovement();
-
-				break;
-			default: // Inventory, Obtaining, Setting, Talking
-				DisablePlayerMovement();
-
-				break;
-		}
-	*/
 	}
-
 
 
 	void ManageRayActivationUnder(InteractionStatus currentInterStatus)
@@ -142,15 +126,11 @@ public class InteractionLimitController : MonoBehaviour
 	}
 
 
-
 	List<InteractionStatus> mouseUnlockInterStatus = new() { InteractionStatus.TalkingNpc, InteractionStatus.TalkingWalkieTalkie,
-																								 InteractionStatus.Investigating, InteractionStatus.ObservingPlace};
+														     InteractionStatus.Investigating, InteractionStatus.ObservingPlace};
 	void ManageCursorUnder(InteractionStatus prevInterStatus, InteractionStatus currentInterStatus)
 	{
-		//Debug.Log(prevInterStatus + " -> " + currentInterStatus);
-
 		if(currentInterStatus == InteractionStatus.None)
-			//&& mouseUnlockInterStatus.Contains(prevInterStatus))
 		{
 			playerController.LockCursor();
 			return;
@@ -158,26 +138,13 @@ public class InteractionLimitController : MonoBehaviour
 
 		if (mouseUnlockInterStatus.Contains(currentInterStatus))
 			playerController.UnLockCursor();
-
-		/*
-		switch (currentInterStatus)
-		{
-			case InteractionStatus.TalkingNpc:
-			case InteractionStatus.TalkingWalkieTalkie:
-			case InteractionStatus.Investigating:
-			case InteractionStatus.ObservingPlace:
-				playerController.UnLockCursor();
-
-				break;
-			default:
-				playerController.LockCursor();
-
-				break;
-		}*/
 	}
 
 
+	#endregion
 
+
+	#region [Action]: Control Player Movement
 
 	bool isPlayerMovable;
 	/// <summary> 카메라/캐릭터 이동 허가, 레이캐스트 재작동 </summary>
@@ -201,6 +168,8 @@ public class InteractionLimitController : MonoBehaviour
 		}
 	}
 
+
+	#endregion
 
 
 }

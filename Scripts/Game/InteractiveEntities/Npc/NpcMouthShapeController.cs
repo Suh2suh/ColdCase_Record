@@ -2,30 +2,29 @@
 using UnityEngine;
 
 
+/// <summary>
+/// Role: open npc's mouth with "A/E/I/O/U"
+/// </summary>
 public class NpcMouthShapeController
 {
-	// "a", "e", "i", "o", "u"
-	/*
-	 
-	 a: teeth 100
-	 e: teeth 100
-	  i: teeth 0
-	 o: teeth 100
-	 u: teeth 100
-	 
-	 */
-
-	BlenderShapeController targetBlenderShapeController;
-
 	public readonly string teethKey = "Mouth_Open";
-	float mouseDuration = 0.5f;
-	Pronounce prevPronounce = Pronounce.None;
 
-	bool isMouthOpen = false;
-	bool isTeethOpen = false;
+	#region Private Variables
+	private BlenderShapeController targetBlenderShapeController;
 
+	private float mouseDuration = 0.5f;
+	private Pronounce prevPronounce = Pronounce.None;
+
+	private bool isMouthOpen = false;
+
+	#endregion
+
+	#region Properties
 	public Pronounce PrevPronounce { get => prevPronounce; }
 	public bool IsMouthOpen { get => isMouthOpen; }
+
+	#endregion
+
 
 	public NpcMouthShapeController(BlenderShapeController blenderShapeController)
 	{
@@ -33,43 +32,31 @@ public class NpcMouthShapeController
 	}
 
 
-	// open & close at the same time
 	public IEnumerator OpenMouthSmoothly(Pronounce pronounce, float intensity, float duration)
 	{
-		//Debug.Log("closing: " + prevPronounce + " / opening: " + pronounce);
-
 		float time = 0;
 		float lerpT = time / mouseDuration;
 
-
-		float prevOriginalValue = 0f;
-		if (prevPronounce != Pronounce.None) 
-			prevOriginalValue = targetBlenderShapeController.GetBlenderShapeValue(prevPronounce.ToString());
-		float originalValue = targetBlenderShapeController.GetBlenderShapeValue(pronounce.ToString());
-		float teethOriginalValue = targetBlenderShapeController.GetBlenderShapeValue(teethKey);
-
+		float prevPronounceShapeValue = (prevPronounce == Pronounce.None ? 0 : targetBlenderShapeController.GetBlenderShapeValue(prevPronounce.ToString()));
+		float currentPronounceShapeValue = targetBlenderShapeController.GetBlenderShapeValue(pronounce.ToString());
+		float currentTeethShapeValue = targetBlenderShapeController.GetBlenderShapeValue(teethKey);
 
 		isMouthOpen = (intensity > 0);
 
 		while (time < duration)
 		{
-			if (prevPronounce != Pronounce.None)
-				OpenMouth(prevPronounce, Mathf.Lerp(prevOriginalValue, 0, lerpT));
-			OpenMouth(pronounce, Mathf.Lerp(originalValue, intensity, lerpT));
+			if (prevPronounceShapeValue != 0)
+			{
+				OpenMouth(prevPronounce, Mathf.Lerp(prevPronounceShapeValue, 0, lerpT));
+			}
 
+			OpenMouth(pronounce, Mathf.Lerp(currentPronounceShapeValue, intensity, lerpT));
 
-
-			if (pronounce == Pronounce.i)
-				OpenTeeth(Mathf.Lerp(teethOriginalValue, 0, lerpT));
-			else
-				OpenTeeth(Mathf.Lerp(teethOriginalValue, intensity, lerpT));
-
-
+			float goalTeethShapeValue = (pronounce == Pronounce.i ? 0 : intensity);
+			OpenTeeth(Mathf.Lerp(currentTeethShapeValue, goalTeethShapeValue, lerpT));
 
 			time += Time.deltaTime;
 			lerpT = time / mouseDuration;
-
-			//Debug.Log(time +  " < " + duration);
 
 			yield return null;
 		}
@@ -79,16 +66,14 @@ public class NpcMouthShapeController
 		OpenMouth(pronounce, intensity);
 
 
-		if (intensity != 0) prevPronounce = pronounce;
-		else					   prevPronounce = Pronounce.None;
+		if (intensity != 0)  prevPronounce = pronounce;
+		else			     prevPronounce = Pronounce.None;
 	}
 
 
 	public void OpenMouth(Pronounce pronounce, float intensity)
 	{
 		targetBlenderShapeController.SetBlenderShapeValue(pronounce.ToString(), intensity);
-
-		//Debug.Log(intensity);
 	}
 
 	public void OpenTeeth(float openIntensity)

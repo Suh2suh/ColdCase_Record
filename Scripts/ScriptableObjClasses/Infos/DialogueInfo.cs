@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -12,7 +11,7 @@ public class DialogueInfo : ScriptableObject
 
 
 	public static List<string> CommonDialogueSheetNames = new() { "Setting", "ItemName", "ItemExplanation", "Narration",
-																								             "Book", "InvestigationEvent", "WalkieTalkie"};
+																  "Book", "InvestigationEvent", "WalkieTalkie"};
 
 	[SerializeField] UDictionary<string, UDictionary<string, UDictionary<Language, string>>> commonDialogueDictionary;
 
@@ -228,16 +227,16 @@ public class DialogueInfo : ScriptableObject
 	/// <summary>  Narration Obj와 TriggerOn시 true, 나레이션 종료 시 False  </summary>
 	public bool isNarationNeed = false;
 
-	/// <summary>  새 나레이션 데이터 더미를 받아왔을 때에 있을 때에 순간적으로 true, 다이얼로그매니저가 초기화 시 False.
-	/// 이전 나레이션 데이터를 잘못 받아오지 않도록 관리해줌  </summary>
+	/// <summary> 이전 나레이션 데이터를 잘못 받아오지 않도록 관리해줌  </summary>
 	public bool isNarrationValid = false;
 
 
-	NarrationData[] currentNarrationData;
+	private NarrationData[] currentNarrationData;
 	public NarrationData[] CurrentNarrationData
 	{
 		get => currentNarrationData;
 	}
+
 
 	public void SetNewNarrationData(NarrationData[] newNarrationData)
 	{

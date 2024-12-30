@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine;
-
 using UnityEngine.EventSystems;
 using TMPro;
 
@@ -9,10 +8,12 @@ namespace ColdCase.Dialogue.Book.Utility
 {
 	public class BookHighlighter
 	{
-		TextMeshProUGUI pointingSentence;
-		int pointingCharIndexInSentence = -1;
-		Vector2 SentenceLocaledMousePos = Vector2.zero;
+		#region Private Variables
+		private TextMeshProUGUI pointingSentence;
+		private int pointingCharIndexInSentence = -1;
+		private Vector2 SentenceLocaledMousePos = Vector2.zero;
 
+		#endregion
 
 		protected static string highlightStartTag;
 		protected static string highlightEndTag;
@@ -20,20 +21,9 @@ namespace ColdCase.Dialogue.Book.Utility
 		public Dictionary<string, Dictionary<string, string>> MarkedKeyTextPerSheet { get => markedKeyTextPerSheet; }
 
 
-		/*
-		public BookHighlighter(Color highlightColor, Vector4 highlightPadding)
-		{
-			string markTagColor = "#" + ColorUtility.ToHtmlStringRGBA(highlightColor);
-			string markTagPadding = "padding=\"" + highlightPadding[0] + "," + highlightPadding[1] + "," + highlightPadding[2] + "," + highlightPadding[3] + "\"";
-			highlightStartTag = "<mark=" + markTagColor + " " + markTagPadding + ">";
-
-			markedKeyTextPerSheet = new();
-		}
-		*/
-
-
-
-		/// <summary> <b>*Must* use this method on update,</b> for highlighting texts </summary>
+		/// <summary> 
+		/// <b>*Must* use this method on update,</b> for highlighting texts 
+		/// </summary>
 		public void ManageTextHighlightOnUpdate()
 		{
 			if (pointingSentence == null) return;
@@ -55,7 +45,10 @@ namespace ColdCase.Dialogue.Book.Utility
 			}
 		}
 
-		/// <summary>  If you want to save highlighted record, update it with book by using markedKeyTextPerSheet  </summary>
+
+		/// <summary>  
+		/// If you want to save highlighted record, update it with book by using markedKeyTextPerSheet  
+		/// </summary>
 		public void Postprocess(System.Action callback)
 		{
 			pointingSentence = null;
@@ -64,9 +57,10 @@ namespace ColdCase.Dialogue.Book.Utility
 		}
 
 
+		#region [Action]: Highlight / DeHilight
 
-		int prevCharIndex = -1;
-		void HighlightCharacter(TextMeshProUGUI sentence, int targetCharIndex)
+		private int prevCharIndex = -1;
+		private void HighlightCharacter(TextMeshProUGUI sentence, int targetCharIndex)
 		{
 			if (targetCharIndex < 0 || prevCharIndex == targetCharIndex ||
 				IsCharacterHighlighted(sentence.text, targetCharIndex)) return;
@@ -86,7 +80,7 @@ namespace ColdCase.Dialogue.Book.Utility
 			prevCharIndex = targetCharIndex;
 		}
 
-		void DeHighlightCharacter(TextMeshProUGUI sentence, int targetCharIndex)
+		private void DeHighlightCharacter(TextMeshProUGUI sentence, int targetCharIndex)
 		{
 			if (targetCharIndex < 0 || !IsCharacterHighlighted(sentence.text, targetCharIndex)) return;
 
@@ -102,8 +96,7 @@ namespace ColdCase.Dialogue.Book.Utility
 		}
 
 
-
-		Vector2 GetUILocaledMousePos(Transform targetUI)
+		private Vector2 GetUILocaledMousePos(Transform targetUI)
 		{
 			var rectTransform = targetUI.GetComponent<RectTransform>();
 			var mousePosition = new Vector2(Input.mousePosition.x, Input.mousePosition.y);
@@ -113,28 +106,16 @@ namespace ColdCase.Dialogue.Book.Utility
 		}
 
 
-
-		int GetRealIndexOfPointingChar(TMP_TextInfo textInfo, Vector2 localMousePos)
+		private int GetRealIndexOfPointingChar(TMP_TextInfo textInfo, Vector2 localMousePos)
 		{
 			TMP_LineInfo pointingLineInfo;
 
-			//try
-			//{
-				int pointingLineIndex = GetIndexOfPointingLine(textInfo, localMousePos);
+			int pointingLineIndex = GetIndexOfPointingLine(textInfo, localMousePos);
 
-				if (pointingLineIndex >= 0)
-					pointingLineInfo = textInfo.lineInfo[pointingLineIndex];
-				else
-					return -1;
-
-			//Debug.Log("Line: " + pointingLineIndex);
-			//}
-			//catch (System.Exception)
-			//{
-			//	return -1;
-
-			//	throw;
-			//}
+			if (pointingLineIndex >= 0)
+				pointingLineInfo = textInfo.lineInfo[pointingLineIndex];
+			else
+				return -1;
 
 			int pointingCharIndex = GetIndexOfPointingChar(textInfo, pointingLineInfo, localMousePos);
 			//Debug.Log(pointingLineInfo.ToString() + " / " + pointingCharIndex);
@@ -142,8 +123,7 @@ namespace ColdCase.Dialogue.Book.Utility
 			return pointingCharIndex;
 		}
 
-
-		int GetIndexOfPointingLine(TMP_TextInfo textInfo, Vector2 position)
+		private int GetIndexOfPointingLine(TMP_TextInfo textInfo, Vector2 position)
 		{
 			int pointingLineIndex = -1;
 
@@ -159,7 +139,7 @@ namespace ColdCase.Dialogue.Book.Utility
 			return pointingLineIndex;
 		}
 
-		int GetIndexOfPointingChar(TMP_TextInfo textInfo, TMP_LineInfo lineInfo, Vector2 position)
+		private int GetIndexOfPointingChar(TMP_TextInfo textInfo, TMP_LineInfo lineInfo, Vector2 position)
 		{
 			int pointingCharIndex = -1;
 
@@ -173,14 +153,11 @@ namespace ColdCase.Dialogue.Book.Utility
 				}
 			}
 
-
-
 			return pointingCharIndex;
 		}
 
 
-
-		bool IsCharacterHighlighted(string fullText, int realCharIndex)
+		private bool IsCharacterHighlighted(string fullText, int realCharIndex)
 		{
 			if (realCharIndex - highlightStartTag.Length < 0) return false;
 
@@ -189,8 +166,11 @@ namespace ColdCase.Dialogue.Book.Utility
 		}
 
 
+		#endregion
 
-		void AddRecordHighlightedText(string sheetName, string key)
+		#region [Action]: Save Highlight Record
+
+		private void AddRecordHighlightedText(string sheetName, string key)
 		{
 			if (!markedKeyTextPerSheet.ContainsKey(sheetName))
 				markedKeyTextPerSheet[sheetName] = new Dictionary<string, string> { { key, "" } };
@@ -206,6 +186,7 @@ namespace ColdCase.Dialogue.Book.Utility
 		}
 
 
+		#endregion
 
 
 		#region HighlightableText Linker

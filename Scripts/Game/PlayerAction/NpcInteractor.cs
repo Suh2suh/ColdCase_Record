@@ -54,7 +54,7 @@ public class NpcInteractor : MonoBehaviour
 	/// <summary>  Hold Notebook & Start Dialogue  </summary>
 	void CheckDialogueEvent()
     {
-        if(HotKeyChecker.isKeyPressed[HotKey.Talk] && ObjectSorter.CHPointingObj.objType == ObjectType.NPC)
+        if(HotKeyChecker.isKeyPressed[HotKey.Talk] && ObjectSorter.CHPointingObj.ObjType == ObjectType.NPC)
 		{
             if (PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.None)
             {
@@ -81,7 +81,7 @@ public class NpcInteractor : MonoBehaviour
     {
         PlayerStatusManager.SetInterStatus(InteractionStatus.TalkingNpc);
 
-        var communicatingNpc = ObjectSorter.CHPointingObj.objTransform;
+        var communicatingNpc = ObjectSorter.CHPointingObj.ObjTransform;
         var npcPlaceInfo = communicatingNpc.GetComponent<InteractiveEntityInfo>().NpcInfo.NpcPlace;
         if (npcPlaceInfo == null)
 		{
@@ -166,7 +166,7 @@ public class NpcInteractor : MonoBehaviour
     void PostprocessNotebookHold(Transform notebook)
 	{
         notebook.rotation = GetCamLookQuaternion();
-        var npc = ObjectSorter.CHPointingObj.objTransform;
+        var npc = ObjectSorter.CHPointingObj.ObjTransform;
 
         DialogueInfo.OnNpcDialogueStart();
     }

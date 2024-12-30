@@ -1,16 +1,15 @@
-﻿using System.Collections;
-using UnityEngine;
+﻿using UnityEngine;
 
 
 [System.Serializable]
 public class ObservableObject
 {
-	[SerializeField] bool isRotatable = true;
-	[SerializeField] bool isFaceCamera = false;
+	[SerializeField] private bool isRotatable = true;
+	[SerializeField] private bool isFaceCamera = false;
 
 
-	[SerializeField, Range(0.15f, 1)] float zoomDistance = 0.45f;
-	[SerializeField] ScreenPosition screenPosition;
+	[SerializeField, Range(0.15f, 1)] private float zoomDistance = 0.45f;
+	[SerializeField] private ScreenPosition screenPosition;
 
 
 	[HideInInspector] public Vector3 objLocalPos;

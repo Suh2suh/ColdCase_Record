@@ -25,18 +25,10 @@ public class NarrationSubtitlePlayer : MonoBehaviour
 	#endregion
 
 
-
-	public void ShowSubtitleForMoment(string sheetName, string subtitleKey, float durationTime)
-	{
-		if (currentNarrationCoroutine != null) StopCoroutine(currentNarrationCoroutine);
-
-		if (durationTime > 0)
-			 currentNarrationCoroutine = StartCoroutine(ShowSubtitleForMoment(sheetName, subtitleKey, new WaitForSecondsRealtime(durationTime)));
-		else
-			currentNarrationCoroutine = StartCoroutine(ShowSubtitleForMoment(sheetName, subtitleKey, null));
-	}
-
-	public void ShowSubtitleForLong(string sheetName, string subtitleKey)
+	/// <summary>
+	/// show subtitle constantly
+	/// </summary>
+	public void ShowSubtitleConstantly(string sheetName, string subtitleKey)
 	{
 		if (currentNarrationCoroutine != null) StopCoroutine(currentNarrationCoroutine);
 
@@ -44,8 +36,17 @@ public class NarrationSubtitlePlayer : MonoBehaviour
 	}
 
 
+	public void ShowSubtitleBriefly(string sheetName, string subtitleKey, float durationTime)
+	{
+		if (currentNarrationCoroutine != null) StopCoroutine(currentNarrationCoroutine);
 
-	protected IEnumerator ShowSubtitleForMoment(string sheetName, string subtitleKey, IEnumerator callBackCoroutine)
+		if (durationTime > 0)
+			 currentNarrationCoroutine = StartCoroutine(ShowSubtitleBriefly(sheetName, subtitleKey, new WaitForSecondsRealtime(durationTime)));
+		else
+			currentNarrationCoroutine = StartCoroutine(ShowSubtitleBriefly(sheetName, subtitleKey, null));
+	}
+
+	private IEnumerator ShowSubtitleBriefly(string sheetName, string subtitleKey, IEnumerator callBackCoroutine)
 	{
 		ActivateNarrationPanel(true);
 
@@ -58,6 +59,7 @@ public class NarrationSubtitlePlayer : MonoBehaviour
 		ActivateNarrationPanel(false);
 
 	}
+
 
 	protected IEnumerator ShowSubtitle(string sheetName, string subtitleKey)
 	{
@@ -81,9 +83,9 @@ public class NarrationSubtitlePlayer : MonoBehaviour
 	}
 
 
-
 	public void ActivateNarrationPanel(bool activeStatus)
 	{
+		Debug.Log(narrativeDialoguePanel);
 		if (narrativeDialoguePanel.activeSelf != activeStatus)  narrativeDialoguePanel.SetActive(activeStatus);
 	}
 

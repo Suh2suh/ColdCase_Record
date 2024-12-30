@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Video;
 
 
@@ -10,8 +9,8 @@ public class VideoPlayController_WithAudio : VideoPlayController
 	[Header("<Video Data>")]
 	[SerializeField] protected UDictionary<string, AudioPerVideoClip> videoNAudioKeyPair;
 
-	AudioSourceController audioSourceController;
-	protected string currentPlayingVideoClipKey;
+	private AudioSourceController audioSourceController;
+	private protected string currentPlayingVideoClipKey;
 
 
 	#region Unity Methods
@@ -26,6 +25,7 @@ public class VideoPlayController_WithAudio : VideoPlayController
 
 	#endregion
 
+
 	public override void PlayVideoWithKey(string videoClipKey)
 	{
 		if (!videoNAudioKeyPair.ContainsKey(videoClipKey))
@@ -37,7 +37,6 @@ public class VideoPlayController_WithAudio : VideoPlayController
 		PlayVideoClip(videoNAudioKeyPair[videoClipKey].videoClip);
 		currentPlayingVideoClipKey = videoClipKey;
 	}
-
 
 	protected override void CallBackOnVideoPlay()
 	{

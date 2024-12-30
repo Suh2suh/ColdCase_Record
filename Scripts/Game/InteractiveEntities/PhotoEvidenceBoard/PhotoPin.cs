@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -9,9 +7,10 @@ public class PhotoPin : MonoBehaviour
 	[SerializeField] Evidence photoEvidenceType;  //JackPhoto, RestroomPhoto...
 	public Evidence PhotoEvidenceType { get => photoEvidenceType; }
 
+
 	#region Initialization
 
-	Transform photo;
+	private Transform photo;
 	[HideInInspector] public GameObject glitchPlane;
 	[HideInInspector] public GameObject canvas;
 
@@ -26,21 +25,13 @@ public class PhotoPin : MonoBehaviour
 	#endregion
 
 
-
 	public void UpdatePhoto(Texture2D photoTexture)
-	{
-		//Texture2D textureToUse = new Texture2D(photoTexture.width, photoTexture.height, photoTexture.format, photoTexture.mipmapCount > 1);
-		//Graphics.CopyTexture(photoTexture, textureToUse);
-		//textureToUse.Apply(false);
-
-		//GetComponentInChildren<RawImage>().texture = textureToUse;
-		
+	{		
 		GetComponentInChildren<RawImage>().texture = photoTexture;
 
 		var photoInspectorKey = photoEvidenceType.name;
 		photo.GetComponentInChildren<ConditionalObjInspector>().SetItemKey(photoInspectorKey);
 	}
-
 
 
 	public void ShowPhotoNHideGlitch()

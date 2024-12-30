@@ -4,20 +4,28 @@ using UnityEngine;
 using UnityEngine.UI;
 
 
-// 타겟 버튼에 페이지 넘김 기능을 부여한다
-// 페이지를 넘긴다
-
 namespace ColdCase.Dialogue.Book.Utility
 {
+
+	// Role 1. 타겟 버튼에 페이지 넘김 기능을 부여한다
+	//      2. 페이지를 넘긴다
 	public class BookPageNavigator
 	{
-		GameObject leftPageButton;
-		GameObject rightPageButton;
+		#region Setting Variables
+		public bool isBookPageNavigatable = true;
 
-		List<GameObject> bookPages;
+		#endregion
 
+		#region Private Variables
+		private GameObject leftPageButton;
+		private GameObject rightPageButton;
 
-		int navigatingPageIndex;
+		private List<GameObject> bookPages;
+
+		private int navigatingPageIndex;
+
+		#endregion
+
 		public int NavigatingPageIndex
 		{
 			get => navigatingPageIndex;
@@ -29,11 +37,10 @@ namespace ColdCase.Dialogue.Book.Utility
 			}
 		}
 
-
-		public bool isBookPageNavigatable = true;
-
 		public System.Action<List<GameObject>, int> OnPageFlipped;
 
+
+		#region Initializers
 
 		public BookPageNavigator(GameObject leftPageButton, GameObject rightPageButton)
 		{
@@ -54,7 +61,11 @@ namespace ColdCase.Dialogue.Book.Utility
 			LinkPageNavigatorTo(leftPageButton, rightPageButton);
 
 			this.bookPages = new();
-			foreach (var page in bookPages) this.bookPages.Add(page.gameObject);
+			foreach (var page in bookPages)
+			{
+				if(page != null)
+					this.bookPages.Add(page.gameObject);
+			}
 			if (bookPages != null) ActivateBookPage(InitialnavigatingPageIndex);
 
 			navigatingPageIndex = InitialnavigatingPageIndex;
@@ -65,7 +76,11 @@ namespace ColdCase.Dialogue.Book.Utility
 			LinkPageNavigatorTo(leftPageButton, rightPageButton);
 
 			this.bookPages = new();
-			foreach (var page in chapter.BookPages) this.bookPages.Add(page.gameObject);
+			foreach (var page in chapter.BookPages)
+			{
+				if(page != null)
+					this.bookPages.Add(page.gameObject);
+			}
 			if (chapter.BookPages != null) ActivateBookPage(InitialnavigatingPageIndex);
 
 			navigatingPageIndex = InitialnavigatingPageIndex;
@@ -73,12 +88,16 @@ namespace ColdCase.Dialogue.Book.Utility
 		}
 
 
+		#endregion
+
 
 		public void SetPageNavigationableStatus(bool isNavigatable)
 		{
 			if (isBookPageNavigatable != isNavigatable) isBookPageNavigatable = isNavigatable;
 		}
 
+
+		#region [Action]: Page Navigation
 
 		public void NavigateToPage(int newNavigatingPageIndex)
 		{
@@ -94,7 +113,7 @@ namespace ColdCase.Dialogue.Book.Utility
 			ManagePageButtonActivation();
 		}
 
-		void NavigateToLeftPage()
+		private void NavigateToLeftPage()
 		{
 			if (!isBookPageNavigatable) return;
 
@@ -116,7 +135,7 @@ namespace ColdCase.Dialogue.Book.Utility
 			if (OnPageFlipped != null) OnPageFlipped(bookPages, navigatingPageIndex);
 		}
 
-		void NavigateToRightPage()
+		private void NavigateToRightPage()
 		{
 			if (!isBookPageNavigatable) return;
 
@@ -139,7 +158,12 @@ namespace ColdCase.Dialogue.Book.Utility
 		}
 
 
-		void ManagePageButtonActivation()
+		#endregion
+
+
+		#region [Action]: Activation Control
+
+		private void ManagePageButtonActivation()
 		{
 			if (bookPages.Count == 0 ||
 				navigatingPageIndex == 0)
@@ -165,7 +189,7 @@ namespace ColdCase.Dialogue.Book.Utility
 			//Debug.Log("activate :" + button);
 		}
 
-		void DeActivatePageButton(int button)
+		private void DeActivatePageButton(int button)
 		{
 			if (button == 0) leftPageButton.SetActive(false);
 			else rightPageButton.SetActive(false);
@@ -174,7 +198,7 @@ namespace ColdCase.Dialogue.Book.Utility
 		}
 
 
-		void ActivateBookPage(int activateIndex)
+		private void ActivateBookPage(int activateIndex)
 		{
 			for (int index = 0; index < bookPages.Count; index++)
 			{
@@ -183,6 +207,9 @@ namespace ColdCase.Dialogue.Book.Utility
 				else page.SetActive(false);
 			}
 		}
+
+
+		#endregion
 
 
 		public void RecieveNewChapter(List<GameObject> bookPages, int InitialnavigatingPageIndex)

@@ -9,37 +9,37 @@ namespace ColdCase.Dialogue.Book.Object
 	public class Book : MonoBehaviour
 	{
 		[Header("Turn this OFF when you are not reading this book")]
-		[SerializeField] bool isBookReadable = true;
+		[SerializeField] private bool isBookReadable = true;
 
 		[SerializeField, Space(15)]
-		List<BookChapter> bookChapters;
+		private List<BookChapter> bookChapters;
 		[SerializeField, Tooltip("Input only when you do not want to do autoNaming")]
-		Transform initialChapter;
+		private Transform initialChapter;
 		[SerializeField, Tooltip("Chapter/Indexer will be numbering as arabic, chapter 0 would be first display chapter")]
-		bool isChapterAutoNaming = false;
-		bool isBookChapterValid;
+		private bool isChapterAutoNaming = false;
+		private bool isBookChapterValid;
 
 		[Header("Book Chapter Navigation")]
-		BookChapterNavigator bookChapterNavigator;
-		bool isBookChapterMultiple = false;
-		bool isBookChapterNavigatable = false;
+		private BookChapterNavigator bookChapterNavigator;
+		private bool isBookChapterMultiple = false;
+		private bool isBookChapterNavigatable = false;
 
 		[SerializeField]
 		BookChapterIndexerCreator bookChapterIndexerCreator;
 
 		[Header("Book Page Navigation")]
-		BookPageNavigator bookPageNavigator;
-		[SerializeField, Space(15)] GameObject leftButton;
-		[SerializeField] GameObject rightButton;
+		private BookPageNavigator bookPageNavigator;
+		[SerializeField, Space(15)] private GameObject leftButton;
+		[SerializeField] private GameObject rightButton;
 
-		BookHighlighter bookMarker;
-		[SerializeField, Space(15)] bool isBookHighlightable = false;
-		[SerializeField] Color highlightColor;
-		[SerializeField] Vector4 highlightPadding;
+		private BookHighlighter bookMarker;
+		[SerializeField, Space(15)] private bool isBookHighlightable = false;
+		[SerializeField] private Color highlightColor;
+		[SerializeField] private Vector4 highlightPadding;
 
 
-		Dictionary<string, BookChapter> bookChapterDic;
-		Dictionary<string, int> pageNavigationRecordOnChapter;
+		private Dictionary<string, BookChapter> bookChapterDic;
+		private Dictionary<string, int> pageNavigationRecordOnChapter;
 
 
 		#region Unity Methods
@@ -90,8 +90,12 @@ namespace ColdCase.Dialogue.Book.Object
 
 				foreach (var chapter in bookChapters)
 					foreach (var bookPage in chapter.BookPages)
+					{
+						if(bookPage == null) continue;
+
 						foreach (var textPair in bookPage.ApplyingKeyPerTargetText)
 							bookMarker.LinkHighlightRecieverTo(textPair.Key.transform, textPair.Value.sheetName);
+					}
 			}
 		}
 
@@ -101,7 +105,10 @@ namespace ColdCase.Dialogue.Book.Object
 
 
 			if (isBookChapterNavigatable)
-				foreach (var bookChapter in bookChapters) bookChapterIndexerCreator.CreateNpcIndexer(bookChapter.name);
+			{
+				foreach (var bookChapter in bookChapters) 
+					bookChapterIndexerCreator.CreateNpcIndexer(bookChapter.name);
+			}		
 		}
 
 		private void FixedUpdate()
@@ -109,8 +116,8 @@ namespace ColdCase.Dialogue.Book.Object
 			if (!isBookReadable) return;
 
 
-			if (isBookChapterNavigatable) bookChapterNavigator.CheckPointingIndexerOnFixedUpdate();
-
+			if (isBookChapterNavigatable) 
+				bookChapterNavigator.CheckPointingIndexerOnFixedUpdate();
 		}
 
 		private void Update()
@@ -132,7 +139,9 @@ namespace ColdCase.Dialogue.Book.Object
 
 
 		#endregion
-		void AutoNameBookChapters(List<BookChapter> bookChapters)
+
+
+		private void AutoNameBookChapters(List<BookChapter> bookChapters)
 		{
 			for (int chapterIndex = 0; chapterIndex < bookChapters.Count; chapterIndex++)
 			{
@@ -142,7 +151,7 @@ namespace ColdCase.Dialogue.Book.Object
 		}
 
 
-		void OnChapterFlipped(string previousChapterName, string newChapterName)
+		private void OnChapterFlipped(string previousChapterName, string newChapterName)
 		{
 			Debug.Log(bookChapterNavigator.NavigatingChapterName);
 			string newNavigatingChapterName = bookChapterNavigator.NavigatingChapterName;
@@ -151,16 +160,14 @@ namespace ColdCase.Dialogue.Book.Object
 
 			bookPageNavigator.RecieveNewChapter(newBookChapter.BookPageObjs, navigatedPageRecord);
 		}
-		void OnPageFlipped(List<GameObject> navigatingPages, int navigatingIndex)
+		private void OnPageFlipped(List<GameObject> navigatingPages, int navigatingIndex)
 		{
 			Debug.Log(bookChapterNavigator.NavigatingChapterName);
 			pageNavigationRecordOnChapter[bookChapterNavigator.NavigatingChapterName] = navigatingIndex;
 		}
 
 
-
-
-		List<GameObject> GetGameObjList<T>(List<T> originalList) where T : BookChapter
+		private List<GameObject> GetGameObjList<T>(List<T> originalList) where T : BookChapter
 		{
 			List<GameObject> gameObjList = new();
 
@@ -168,5 +175,7 @@ namespace ColdCase.Dialogue.Book.Object
 
 			return gameObjList;
 		}
+
+
 	}
 }

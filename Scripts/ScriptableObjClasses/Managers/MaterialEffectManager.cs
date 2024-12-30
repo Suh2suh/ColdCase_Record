@@ -1,6 +1,6 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+
 
 [CreateAssetMenu(fileName = "MaterialEffectManager", menuName = "ScriptableObjects/Managers/MaterialEffectManager", order = 1)]
 public class MaterialEffectManager : ScriptableObject
@@ -8,7 +8,6 @@ public class MaterialEffectManager : ScriptableObject
 
     [SerializeField] Material DissolveMaterial;
     [SerializeField] Material PhaseMaterial;
-
 
 
 	public IEnumerator ApplyMaterialEffect(Transform targetObject, 
@@ -50,8 +49,6 @@ public class MaterialEffectManager : ScriptableObject
     }
 
 
-    // 이거 에러 고치기
-    // static 변수 -> static material을 지속 전달하는 걸로 바꾸기
     Material GetDissolvedMat(Renderer objRenderer)
     {
         var convertedMat = new Material(DissolveMaterial);
@@ -117,7 +114,9 @@ public class MaterialEffectManager : ScriptableObject
         return splitValue;
     }
 
+
 }
+
 
 public enum ShaderGraphEffectType
 { None, Dissolve, Phase }

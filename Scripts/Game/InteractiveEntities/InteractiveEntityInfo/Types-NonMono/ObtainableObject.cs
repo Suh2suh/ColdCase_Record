@@ -5,9 +5,9 @@ using UnityEngine;
 [System.Serializable]
 public class ObtainableObject
 {
-	[SerializeField] Evidence evidenceType;
-	[SerializeField] ShaderGraphEffectType effectType;
-	[SerializeField] ShaderGraphEffectDirection phaseDirection;   // 일단 지금은 Phase에만 적용됨
+	[SerializeField] private Evidence evidenceType;
+	[SerializeField] private ShaderGraphEffectType effectType;
+	[SerializeField] private ShaderGraphEffectDirection phaseDirection;   // 일단 지금은 Phase에만 적용됨
 
 
 	#region Getter
@@ -36,14 +36,5 @@ public class ObtainableObject
 			obtainableObject.SetActive(false);
 	}
 
-	// TODO: PhotoEvidence로 옮기기
-	public static bool IsUnObtainedPhotoEvidence(Transform obtainableObject)
-	{
-		var photoEvidenceCandidate = obtainableObject.GetComponent<PhotoEvidenceInfo>();
-		if (photoEvidenceCandidate != null && photoEvidenceCandidate.EvidenceType.IsObtained == false)
-			return true;
-
-		return false;
-	}
 
 }

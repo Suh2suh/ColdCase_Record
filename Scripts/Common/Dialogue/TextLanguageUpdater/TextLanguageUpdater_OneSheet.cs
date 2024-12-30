@@ -6,14 +6,13 @@ public class TextLanguageUpdater_OneSheet : TextLanguageUpdater
 {
 
 	[Space(10)]
-	[SerializeField] string sheetName;
+	[SerializeField] private string sheetName;
 	[Header("Add More Text In Need")]
-	[SerializeField] List<Container> KeyTextPairContainers;
+	[SerializeField] private List<Container> KeyTextPairContainers;
 
 
 	protected override void ApplyTextWithKeys()
 	{
-		//Debug.Log("hi");
 		foreach (var container in KeyTextPairContainers)
 		{
 			foreach(var keyTextPair in container.ApplyingKeyPerTargetText)

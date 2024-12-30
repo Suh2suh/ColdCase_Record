@@ -60,7 +60,7 @@ public class IconController : Singleton<IconController>
         if(GameModeManager.GetCurrentGameMode() == GameMode.Game)
 		{
             if (photoIconObj.activeSelf)
-                DisplayIconOnObj(photoIconObj, ObjectSorter.CHPointingObj.objTransform);
+                DisplayIconOnObj(photoIconObj, ObjectSorter.CHPointingObj.ObjTransform);
         }
     }
 
@@ -90,7 +90,7 @@ public class IconController : Singleton<IconController>
 
 
 
-    void OnCHPointingObjChanged(ObjectInfo pointingObj)
+    void OnCHPointingObjChanged(IObjectInfo pointingObj)
     {
         HintPlayerPhotographicEvidence(pointingObj);
     }
@@ -139,16 +139,16 @@ public class IconController : Singleton<IconController>
 
     
 
-    void HintPlayerPhotographicEvidence(ObjectInfo pointingObject)
+    void HintPlayerPhotographicEvidence(IObjectInfo pointingObject)
     {
         //Debug.Log(pointingObject.objTransform + " : " + pointingObject.objType);
-        if (pointingObject.objTransform == null)
+        if (pointingObject.ObjTransform == null)
         {
             ActivateIcon(photoIconObj, false);
             return;
         }
 
-        var evidenceInfos = pointingObject.objTransform.GetComponentsInChildren<PhotoEvidenceInfo>();
+        var evidenceInfos = pointingObject.ObjTransform.GetComponentsInChildren<PhotoEvidenceInfo>();
         foreach (var evidenceInfo in evidenceInfos)   // 어차피 한 오브젝트의 하위 객체들을 검사하는 거기 때문에, 하나만 포함되면 된다.
         {
             if (evidenceInfo.EvidenceType.name.Contains("Photo") && ! evidenceInfo.EvidenceType.IsObtained) //evidenceInfo.gameObject.activeSelf)

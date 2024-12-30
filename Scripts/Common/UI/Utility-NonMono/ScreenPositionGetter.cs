@@ -4,8 +4,7 @@ using UnityEngine;
 
 public class ScreenPositionGetter
 {
-	static int divideNum = 5;
-
+	private static int divideNum = 5;
 
 
 	public static Vector3 GetScreenPosition(ScreenPosition screenPosition, float camDistance)
@@ -49,7 +48,6 @@ public class ScreenPositionGetter
 	/// <returns></returns>
 	public static Vector2 GetScreenPosition(HorizontalAlignment horizontalAlignment, VerticalAlignment verticalAlignment, int closeness)
 	{
-		// TODO: 코드 정리
 		if (closeness < 0) closeness = 0;
 
 		int hCenter = Screen.width / 2,  vCenter = Screen.height / 2;

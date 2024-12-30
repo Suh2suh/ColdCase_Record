@@ -1,13 +1,12 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+
 
 public abstract class MouseHoverChecker : MonoBehaviour
 {
 	[Space(15)]
 	[SerializeField] protected InteractionStatus mouseHovableStatus;
 
-	bool isMouseHovering;
+	private bool isMouseHovering;
 	public bool IsMouseHovering
 	{
 		get => isMouseHovering;

@@ -3,32 +3,29 @@ using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 
+
 public class ConditionalObjInspector : MouseHoverChecker
 {
+	enum InspectorPlacement { OnRight, OnLeft, OnBottom, OnObject }
+	enum InspectorCondition { OnHover, OnObservation }
 
-	#region Variables
-
+	#region Setting Variables
 	[SerializeField, HideInInspector] DialogueInfo dialogueInfo;
 
 	[SerializeField] InspectorPlacement inspectorPlacement;
 	[SerializeField] InspectorCondition inspectorCondition;
 
-	// Title, Summary 선택 가능하게 할 시, Instantiate 해야 함
 	[Space(15), SerializeField] GameObject inspectorPanel;
 
 	[Space(15), SerializeField] string sheetName = "ItemExplanation";
-	[SerializeField]					   string itemKey;
+	[SerializeField] string itemKey;
 
 	static int closenessFromCenter = 2;
-
 
 	#endregion
 
 
-	#region Initializaition
-
-	enum InspectorPlacement { OnRight, OnLeft, OnBottom, OnObject }
-	enum InspectorCondition { OnHover, OnObservation }
+	#region Unity Methods
 
 	private void Awake()
 	{
@@ -52,11 +49,13 @@ public class ConditionalObjInspector : MouseHoverChecker
 	#endregion
 
 
+	public void SetItemKey(string newItemKey) 
+	{ 
+		itemKey = newItemKey; 
+	}
 
-	public void SetItemKey(string newItemKey) { itemKey = newItemKey; }
 
-
-	#region Inspector On Hover
+	#region [Action]: On Hover
 
 	protected override void OnMouseHover()
 	{
@@ -78,8 +77,7 @@ public class ConditionalObjInspector : MouseHoverChecker
 
 	#endregion
 
-
-	#region Inspector On Observation
+	#region [Action]: On Observation
 
 	void OnObservation(Transform ObservingObj, bool isOn)
 	{
@@ -96,7 +94,6 @@ public class ConditionalObjInspector : MouseHoverChecker
 	#endregion
 
 
-
 	public void ActivateInspector()
 	{
 		PreProcessInspector();
@@ -104,30 +101,28 @@ public class ConditionalObjInspector : MouseHoverChecker
 		ActivationController.ActivateObj(inspectorPanel, true);
 	}
 
-	void DeActivateInspector()
+	private void DeActivateInspector()
 	{
 		ActivationController.ActivateObj(inspectorPanel, false);
 	}
 
-	#region Inspector Activation Processing
 
-	void PreProcessInspector()
+	#region [Action]: PreProcess Inspector
+
+	private void PreProcessInspector()
 	{
 		SetInsepctorText();
 		SetInspectorPos();
 
 
-		// TODO: 코드 정리
-		if(mouseHovableStatus == InteractionStatus.Inventory)
+		if(mouseHovableStatus == InteractionStatus.Inventory && transform.TryGetComponent<PlayerCheckStatus>(out var playerCheckStatus))
 		{
-			if (transform.TryGetComponent<PlayerCheckStatus>(out var playerCheckStatus))
-				playerCheckStatus.SetStatusChecked();
+			playerCheckStatus.SetStatusChecked();
 		}
 	}
 
 
-
-	void SetInsepctorText()
+	private void SetInsepctorText()
 	{
 		string itemSummaryText;
 
@@ -140,7 +135,7 @@ public class ConditionalObjInspector : MouseHoverChecker
 
 	}
 
-	void SetInspectorPos()
+	private void SetInspectorPos()
 	{
 		Vector2 inspectorPos = new();
 
@@ -151,7 +146,7 @@ public class ConditionalObjInspector : MouseHoverChecker
 
 				break;
 			case InspectorPlacement.OnRight:
-				inspectorPos =ScreenPositionGetter.GetScreenPosition(HorizontalAlignment.Right, VerticalAlignment.Center, closenessFromCenter);
+				inspectorPos = ScreenPositionGetter.GetScreenPosition(HorizontalAlignment.Right, VerticalAlignment.Center, closenessFromCenter);
 
 				break;
 			case InspectorPlacement.OnBottom:
@@ -169,9 +164,7 @@ public class ConditionalObjInspector : MouseHoverChecker
 	}
 	
 
-
 	#endregion
-
 
 
 }

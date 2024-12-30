@@ -1,16 +1,15 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+
 
 [RequireComponent(typeof(BlenderShapeController))]
 public class NpcEyeShapeController : MonoBehaviour
 {
+	[SerializeField] private Vector2 eyeBlinkingTermRange = new Vector2(5f, 10f);
+	[SerializeField, Range(0.1f, 0.4f)] private float eyeOpeningTime = 0.18f;
+	[SerializeField, Range(0.1f, 0.4f)] private float eyeClosingTime = 0.14f;
 
-	BlenderShapeController npcBlenderShapeController;
-	[SerializeField] Vector2 eyeBlinkingTermRange = new Vector2(5f, 10f);
-	[SerializeField, Range(0.1f, 0.4f)] float eyeOpeningTime = 0.18f;
-	[SerializeField, Range(0.1f, 0.4f)] float eyeClosingTime = 0.14f;
-
+	private BlenderShapeController npcBlenderShapeController;
 
 
 	private void Start()
@@ -21,9 +20,9 @@ public class NpcEyeShapeController : MonoBehaviour
 	}
 
 
-	WaitForSecondsRealtime waitForSecondsRealtime = new(0f);
-	float eyeBlinkingTerm;
-	IEnumerator BlinkEye()
+	private WaitForSecondsRealtime waitForSecondsRealtime = new(0f);
+	private float eyeBlinkingTerm;
+	private IEnumerator BlinkEye()
 	{
 		//Debug.Log("Blink");
 
@@ -38,8 +37,7 @@ public class NpcEyeShapeController : MonoBehaviour
 	}
 
 
-	
-	IEnumerator OpenEye()
+	private IEnumerator OpenEye()
 	{
 		float time = 0;
 
@@ -50,12 +48,11 @@ public class NpcEyeShapeController : MonoBehaviour
 			time += Time.deltaTime;
 			yield return null;
 		}
-		npcBlenderShapeController.SetBlenderShapeValue("Eye_Close", 0f);
 
+		npcBlenderShapeController.SetBlenderShapeValue("Eye_Close", 0f);
 	}
 
-
-	IEnumerator CloseEye()
+	private IEnumerator CloseEye()
 	{
 		float time = 0;
 
@@ -66,10 +63,9 @@ public class NpcEyeShapeController : MonoBehaviour
 			time += Time.deltaTime;
 			yield return null;
 		}
+
 		npcBlenderShapeController.SetBlenderShapeValue("Eye_Close", 100f);
-
 	}
-
 
 
 }

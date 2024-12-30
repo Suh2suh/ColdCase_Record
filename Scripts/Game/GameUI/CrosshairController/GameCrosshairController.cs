@@ -5,19 +5,18 @@ using UnityEngine;
 public class GameCrosshairController : CrosshairController
 {
     [Header("Highlighted Crosshair Setting")]
-    Vector3 defaultCHScale;
-    [SerializeField, Space(15)] Sprite highlightCHSpriteCircle; 
-    [SerializeField] Sprite highlightCHSpriteCheck;
-    [SerializeField] Vector3 highlightCHScale;    
-    [SerializeField] float upScaleDuration = 0.5f;   
+	private Vector3 defaultCHScale;
+    [SerializeField, Space(15)] private Sprite highlightCHSpriteCircle; 
+    [SerializeField] private Sprite highlightCHSpriteCheck;
+    [SerializeField] private Vector3 highlightCHScale;    
+    [SerializeField] private float upScaleDuration = 0.5f;   
 
     [Header("Detected Object Interact KeyHint")]
     [SerializeField] HotKeyInfo hotKeyInfo;
-    [SerializeField] TextMeshProUGUI keyHintText;  
-    Transform keyHintTransform; 
+    [SerializeField] TextMeshProUGUI keyHintText;
+	private Transform keyHintTransform;
 
-    bool isCHDefaultMode; 
-
+	private bool isCHDefaultMode; 
 
 
 	#region Unity Methods
@@ -56,12 +55,12 @@ public class GameCrosshairController : CrosshairController
     }
 
 
-    #endregion
+	#endregion
 
 
-    /// <summary>    Camera에서 Object 촬영 후, ObtainObject 획득 가능 상태로 변경할 때. Pointing Obj가 바뀌지 않기 때문에
-    ///                        Manage를 한 번 더 업데이트 해주어야 함. </summary>
-    void OnInteractionStatusUpdated()
+	/// <summary>    Camera에서 Object 촬영 후, ObtainObject 획득 가능 상태로 변경할 때. Pointing Obj가 바뀌지 않기 때문에
+	///                        Manage를 한 번 더 업데이트 해주어야 함. </summary>
+	private void OnInteractionStatusUpdated()
 	{
         var prevInterStatus = PlayerStatusManager.GetPrevInterStatus();
         if (prevInterStatus != InteractionStatus.Photo) return;
@@ -71,7 +70,7 @@ public class GameCrosshairController : CrosshairController
 
     }
 
-    void OnCHPointingObjChanged(ObjectInfo pointingObject)
+    private void OnCHPointingObjChanged(IObjectInfo pointingObject)
 	{
         //Debug.Log(pointingObject.objTransform + " " + pointingObject.objType);
 
@@ -79,7 +78,6 @@ public class GameCrosshairController : CrosshairController
 
         ManageCHColorUnder(pointingObject);
     }
-
 
 
     public void ManageCHActivationUnder(InteractionStatus currentInterStatus)
@@ -90,12 +88,12 @@ public class GameCrosshairController : CrosshairController
             DeActivateCH();
     }
 
-    public void ManageCHColorUnder(ObjectInfo pointingObj)
+    public void ManageCHColorUnder(IObjectInfo pointingObj)
     {
-        if (pointingObj.objType == ObjectType.None)   return;
+        if (pointingObj.ObjType == ObjectType.None)   return;
 
-        var chPointingObjType = pointingObj.objType;
-        bool interactiveStatus = pointingObj.objTransform.GetComponent<InteractiveEntityInfo>().IsInteractive;
+        var chPointingObjType = pointingObj.ObjType;
+        bool interactiveStatus = pointingObj.ObjTransform.GetComponent<InteractiveEntityInfo>().IsInteractive;
         //Debug.Log(pointingObj.objType + " " + interactiveStatus);
 
         switch (chPointingObjType)
@@ -123,8 +121,7 @@ public class GameCrosshairController : CrosshairController
 
     #region Highlight / Revert CrossHair
 
-
-    void HighlightCH(Color highlightColor, bool isInteractive = true)
+    private void HighlightCH(Color highlightColor, bool isInteractive = true)
     {
         if (isCHDefaultMode)
         {
@@ -143,7 +140,7 @@ public class GameCrosshairController : CrosshairController
 
     }
 
-    void RevertCH()
+    private void RevertCH()
     {
         if (!isCHDefaultMode)
         {
@@ -158,8 +155,7 @@ public class GameCrosshairController : CrosshairController
     }
 
 
-
-    IEnumerator UpScaleCH()
+    private IEnumerator UpScaleCH()
     {
         float time = 0;
 
@@ -184,9 +180,7 @@ public class GameCrosshairController : CrosshairController
     }
 
 
-
     #endregion
-
 
 
     #region Activation Control
@@ -203,18 +197,17 @@ public class GameCrosshairController : CrosshairController
     }
 
 
-
-    void ActivateKeyHintText(bool activeStatus)
+	private void ActivateKeyHintText(bool activeStatus)
     {
         if (keyHintTransform.gameObject.activeSelf != activeStatus)   keyHintTransform.gameObject.SetActive(activeStatus);
     }
 
-    void ZeroScaleCHKeyHint()
+    private void ZeroScaleCHKeyHint()
     {
         if (keyHintTransform)   keyHintTransform.localScale = Vector3.zero;
         //Debug.Log("Zero");
     }
-    void FullScaleKeyHint()
+    private void FullScaleKeyHint()
     {
         if (keyHintTransform)   keyHintTransform.localScale = Vector3.one;
         //Debug.Log("One");

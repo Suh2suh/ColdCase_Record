@@ -7,14 +7,12 @@ using UnityEngine.Rendering.HighDefinition;
 using IE.RichFX;
 using TRS.CaptureTool;
 
-// TODO: 정리
-
 
 /// <summary> Attatch this to any object  </summary>
 public class PhotoMaker : MonoBehaviour
 {
-
-    [Header("UIs")]
+	#region Setting Variables
+	[Header("UIs")]
     [SerializeField] GameObject CameraPanel;
     [SerializeField] GameObject CameraFramePanel;
     [SerializeField] GameObject PhotoResultPanel;
@@ -28,15 +26,22 @@ public class PhotoMaker : MonoBehaviour
     [SerializeField] Volume post_effect_volume;
     [SerializeField] TutorialInfo tutorialInfo;
 
-    /// <summary>  플레이어 이동 제한에 영향: (촬영 시작 ? 제한 O : 제한 X)  </summary>
-    public static bool isPhotoTaking = false;
+	#endregion
 
-    //private SimpleGaussianBlur simpleGaussianBlur;
-    Vector3 originalPhotoResultPos;
-    Quaternion originalPhotoResultRot;
+	#region Private Variables
+	Vector3 originalPhotoResultPos;
+	Quaternion originalPhotoResultRot;
+
+	#endregion
+
+	/// <summary>  
+    /// 플레이어 이동 제한에 영향: (촬영 시작 ? 제한 O : 제한 X) 
+    /// </summary>
+	public static bool isPhotoTaking = false;
 
 
 	#region Screenshot Delegate Connection/DeConnection
+
 	public PhotoMaker()
 	{
         ScreenshotScript.ScreenshotTaken += ScreenshotTaken;
@@ -51,12 +56,11 @@ public class PhotoMaker : MonoBehaviour
 
 	#endregion
 
-
 	#region Unity Methods
 
 	private void Start()
 	{
-        // Start - Camera Effect + Screenshot
+        // Camera Effect + Screenshot
         DeActivateCameraPanel();
         DeActivateCameraFrame();
 
@@ -66,17 +70,12 @@ public class PhotoMaker : MonoBehaviour
 
         originalPhotoResultPos = PhotoResultPanel.GetComponent<RectTransform>().position;
         originalPhotoResultRot = PhotoResultPanel.GetComponent<RectTransform>().rotation;
-
-        //post_effect_volume.profile.TryGet<SimpleGaussianBlur>(out simpleGaussianBlur);
     }
 
-	// Photo -> 카메라 든 순간부터 내려놓는 순간까지
-    // TODO: Action으로 바꿀 수 있음 비꾸기
+
 	void Update()
     {
-        // 카메라 안 들었을 때
-
-        //if (PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.None && PhaseChecker.GetCurrentPhase() >= 'A' && PhaseChecker.GetCurrentPhase() != 'Z')
+        // 카메라 안 들었을 때 - 카메라 들지 확인
         if (PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.None && tutorialInfo.IsTutorialEnd)
         {
             if (HotKeyChecker.isKeyPressed[HotKey.Photo])
@@ -93,7 +92,7 @@ public class PhotoMaker : MonoBehaviour
             }
         }
 
-        // 카메라 들었을 때
+        // 카메라 들었을 때 - 카메라 놓을지 확인
         else if(PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.Photo)
         {
             if (HotKeyChecker.isKeyPressed[HotKey.Photo] || HotKeyChecker.isKeyPressed[HotKey.Escape])
@@ -109,7 +108,7 @@ public class PhotoMaker : MonoBehaviour
         }
 
 
-
+        // 카메라 들었을 때 - 레이 체크 (놓고 사진 찍는 키 동시 누를 때 버그 발생 해결 위해 이렇게 분리)
         if (PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.Photo)
 		{
             if(!isPhotoTaking)
@@ -129,8 +128,6 @@ public class PhotoMaker : MonoBehaviour
                 }
             }
 		}
-
-
     }
 
 
@@ -152,6 +149,8 @@ public class PhotoMaker : MonoBehaviour
     [SerializeField] float photoDownDuration = 0.5f;
 
     float fadeStage = 10f;
+
+
     IEnumerator FadeOut(Image FadeImage, float finalAlpha)
 	{
         float lerpDuration = (1.0f - finalAlpha) / fadeStage;
@@ -168,23 +167,16 @@ public class PhotoMaker : MonoBehaviour
 
         HideWhitePanel();
 
-
-        // 스크린샷
+        // 스크린샷 툴 에셋 함수 실행
         screenshotScript.TakeSingleScreenshot(false);
-        // ScreenshotTaken 실행됨
-
-
-        //simpleGaussianBlur.active = true;
-
         yield return new WaitForSecondsRealtime(photoViewTime);
-
-
 
         StartCoroutine(PutPhotoResultDown());
     }
 
 
-    void ScreenshotTaken(ScreenshotScript screenshotScript, Texture2D screenshotTexture)
+	// screenshotScript.TakeSingleScreenshot() -> 스크린샷 툴 에셋이 ScreenshotTaken 이벤트 발생시킴
+	void ScreenshotTaken(ScreenshotScript screenshotScript, Texture2D screenshotTexture)
     {
         var detectedEvidenceExists = (detectedPhotographicEvidences.Count > 0);
         if (detectedEvidenceExists)
@@ -197,7 +189,7 @@ public class PhotoMaker : MonoBehaviour
             {
                 var detectedPhotoEvidenceType = photographicEvidence.GetComponent<PhotoEvidenceInfo>().EvidenceType;
 
-                if ( ! detectedPhotoEvidenceType.IsObtained)   //최초 사진이면은... ㅇㅇ
+                if ( ! detectedPhotoEvidenceType.IsObtained)
                     SetInteractiveIfObtainableObj(photographicEvidence);
 
                 photoEvidenceManager.UpdatePhotoEvidenceDic(detectedPhotoEvidenceType, textureToUse);
@@ -205,14 +197,15 @@ public class PhotoMaker : MonoBehaviour
 
             detectedPhotographicEvidences.Clear();
         }
-
     }
 
     void SetInteractiveIfObtainableObj(Transform photographicEvidence)
 	{
         var obtainableObjCandidate = photographicEvidence.GetComponent<InteractiveEntityInfo>();
         if (obtainableObjCandidate != null && obtainableObjCandidate.ObjectType == ObjectType.ObtainableObj)
-            obtainableObjCandidate.IsInteractive = true;
+        {
+			obtainableObjCandidate.IsInteractive = true;
+		}
     }
 
 
@@ -225,22 +218,22 @@ public class PhotoMaker : MonoBehaviour
             float randomZRot = Random.Range(15, 25);
             var finalPos = new Vector3(-20, -20, 0);
             var finalRot = Quaternion.Euler(0, 0, randomZRot);
+            var photoResultPanelRect = PhotoResultPanel.transform.GetComponent<RectTransform>();
 
-            while (time < photoDownDuration)
+			while (time < photoDownDuration)
             {
                 var lerpT = time / photoDownDuration;
 
-                PhotoResultPanel.transform.GetComponent<RectTransform>().position = Vector3.Lerp(originalPhotoResultPos, finalPos, lerpT);
-                PhotoResultPanel.transform.GetComponent<RectTransform>().rotation = Quaternion.Lerp(originalPhotoResultRot, finalRot, lerpT);
+			    photoResultPanelRect.position = Vector3.Lerp(originalPhotoResultPos, finalPos, lerpT);
+                photoResultPanelRect.rotation = Quaternion.Lerp(originalPhotoResultRot, finalRot, lerpT);
                 PhotoResultPanel.transform.localScale = Vector3.Lerp(Vector3.one, Vector3.zero, lerpT);
-                //simpleGaussianBlur.intensity.value -= Time.deltaTime;
 
                 time += 0.01f;
 
                 yield return null;
             }
-            PhotoResultPanel.transform.GetComponent<RectTransform>().position = finalPos;
-            PhotoResultPanel.transform.GetComponent<RectTransform>().rotation = finalRot;
+            photoResultPanelRect.position = finalPos;
+            photoResultPanelRect.rotation = finalRot;
             PhotoResultPanel.transform.localScale = Vector3.zero;
 
 
@@ -269,7 +262,8 @@ public class PhotoMaker : MonoBehaviour
 
     [Header("Photographic Evidence Detection")]
     [SerializeField] float rayReachDistance = 10.0f;
-    bool isPhotoRayNeeded = false;
+
+	bool isPhotoRayNeeded = false;
 
     List<Ray> raysInArea = new();
     List<Transform> detectedPhotographicEvidences = new();
@@ -277,12 +271,12 @@ public class PhotoMaker : MonoBehaviour
     Vector2 screenCenter;
     Ray prevCenterRay;
 
-    //int photoLayerMask = 1 << 8 | 1 << 7;
     int photoLayerMask = 1 << 7;
 
 
-
-    /// <summary>  Detect Photographic Evidence with camera + update "detectedPhotographicEvidence"List  </summary>
+    /// <summary> 
+    /// Detect Photographic Evidence with camera + update "detectedPhotographicEvidence"List  
+    /// </summary>
     void DetectPhotographicEvidence()
     {
         if(detectedPhotographicEvidences.Count > 0)  detectedPhotographicEvidences.Clear();
@@ -305,9 +299,7 @@ public class PhotoMaker : MonoBehaviour
                     detectedPhotographicEvidences.Add(hit.transform);
             }
         }
-
     }
-
 
 
     void UpdateRaysIfCamMoved()
@@ -319,16 +311,13 @@ public class PhotoMaker : MonoBehaviour
 
             prevCenterRay = currentCenterRay;
         }
-
     }
 
     void UpdateRaysInArea(Vector3 originChange, Vector3 dirChange)
     {
         for (int i = 0; i < raysInArea.Count; i++)
             raysInArea[i] = new Ray(raysInArea[i].origin + originChange, raysInArea[i].direction + dirChange);
-
     }
-
 
 
     bool CheckEvidenceSeenOnCamera()
@@ -343,9 +332,9 @@ public class PhotoMaker : MonoBehaviour
     }
 
 
-
-    /// <summary>  화면에서 보이는 실제 이미지 크기 계산 위해 할당. CameraRayArea 이미지 영역 내 9개의 레이 발사 </summary>
-    /// TODO: 해상도 바뀔 때만 실행하게 할 것
+    /// <summary>  
+    /// 화면에서 보이는 실제 이미지 크기 계산 위해 할당. CameraRayArea 이미지 영역 내 9개의 레이 발사 
+    /// </summary>
     void InitializeRaysInArea(float canvasFactor)
     {
         // 현재 해상도에 비례한 실제 rayAreaImage Width/Height 구하기
@@ -369,7 +358,6 @@ public class PhotoMaker : MonoBehaviour
     }
 
 
-    
     void ControlCameraCHColor()
     {
         bool detectedEvidenceExists = (detectedPhotographicEvidences.Count > 0);

@@ -4,10 +4,9 @@ using UnityEngine;
 public class BlenderShapeController : MonoBehaviour
 {
 	[Header("Attatch Mesh Renderer with has Blender Shape")]
-	[SerializeField] List<SkinnedMeshRenderer> blenderShapeRenderers;
-
-	Dictionary<string, SkinnedMeshRenderer> SMRendererPerBlenderShape;
-	Dictionary<string, Mesh> MeshPerBlenderShape;
+	[SerializeField] private List<SkinnedMeshRenderer> blenderShapeRenderers;
+	private Dictionary<string, SkinnedMeshRenderer> SMRendererPerBlenderShape;
+	private Dictionary<string, Mesh> MeshPerBlenderShape;
 
 
 	private void Awake()
@@ -19,21 +18,19 @@ public class BlenderShapeController : MonoBehaviour
 	}
 
 
-	//Ä¡¾Æ: Key 1
-
 	public void SetBlenderShapeValue(string shapeKey, float value)
 	{
 		var skinnedRenderer = SMRendererPerBlenderShape[shapeKey];
 		skinnedRenderer.SetBlendShapeWeight(GetBlenderShapeIndex(shapeKey), value);
 	}
+
 	public float GetBlenderShapeValue(string shapeKey)
 	{
 		var skinnedRenderer = SMRendererPerBlenderShape[shapeKey];
 		return skinnedRenderer.GetBlendShapeWeight(GetBlenderShapeIndex(shapeKey));
 	}
 
-
-	int GetBlenderShapeIndex(string shapeKey)
+	private int GetBlenderShapeIndex(string shapeKey)
 	{
 		var mesh = MeshPerBlenderShape[shapeKey];
 		int blenderShapeIndex = mesh.GetBlendShapeIndex(shapeKey);
@@ -42,7 +39,7 @@ public class BlenderShapeController : MonoBehaviour
 	}
 	
 
-	void InitializeBlenderShapeData()
+	private void InitializeBlenderShapeData()
 	{
 		foreach (var blenderShapeRenderer in blenderShapeRenderers)
 		{
@@ -55,7 +52,9 @@ public class BlenderShapeController : MonoBehaviour
 				SMRendererPerBlenderShape[blenderShapeName] = blenderShapeRenderer;
 				MeshPerBlenderShape[blenderShapeName] = mesh;
 			}
-
 		}
+
 	}
+
+
 }

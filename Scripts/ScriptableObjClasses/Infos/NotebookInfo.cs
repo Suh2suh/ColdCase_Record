@@ -15,10 +15,10 @@ public class NotebookInfo : ScriptableObject
 	private void OnEnable()
 	{
 		//형광펜
-		//if(isHighlightable) bookHighlighter = new BookHighlighter_Mark(highlightColor, highlightPadding);
+		if(isHighlightable) bookHighlighter = new BookHighlighter_Mark(highlightColor, highlightPadding);
 		
 		//마커
-		if (isHighlightable) bookHighlighter = new BookHighlighter_Color(highlightColor);
+		//if (isHighlightable) bookHighlighter = new BookHighlighter_Color(highlightColor);
 	}
 
 

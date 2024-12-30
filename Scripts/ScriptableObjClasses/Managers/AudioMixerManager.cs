@@ -1,21 +1,19 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Audio;
 
+
 [CreateAssetMenu(fileName = "AudioMixerManager", menuName = "ScriptableObjects/Setting/AudioMixerManager", order = 1)]
 public class AudioMixerManager : ScriptableObject
 {
-	// 이름 AudioManager로 바꾸기
-
-	public AudioMixer audioMixer;
-
 	public enum audioType
 	{
 		Master, Music,
 		Effect, Dialogue
 	}
 
+
+	public AudioMixer audioMixer;
 	Dictionary<audioType, string> audioTypeMixerKeyPair = new()
 	{
 		{ audioType.Master, "Master Volume" },
@@ -23,13 +21,9 @@ public class AudioMixerManager : ScriptableObject
 		{ audioType.Effect, "Effect Volume" },
 		{ audioType.Dialogue, "Dialogue Volume" }
 	};
-	public Dictionary<audioType, string> AudioTypeMixerKeyPair { get => audioTypeMixerKeyPair; }
+	public Dictionary<audioType, string> AudioTypeMixerKeyPair 
+	{ get => audioTypeMixerKeyPair; }
 
-
-	public string GetAudioFloatName(audioType audioFloatName)
-	{
-		return audioTypeMixerKeyPair[audioFloatName];
-	}
 
 	public void SetVolume(audioType audioFloatName, float value)
 	{
@@ -37,8 +31,6 @@ public class AudioMixerManager : ScriptableObject
 			audioMixer.GetFloat(audioTypeMixerKeyPair[audioFloatName], out var prevValue))
 		{
 			audioMixer.SetFloat(audioTypeMixerKeyPair[audioFloatName], value);
-
-			//Debug.Log(audioFloat[audioFloatName] + " Set: " + prevValue + " -> " + value);
 		}
 		else
 		{
@@ -54,23 +46,15 @@ public class AudioMixerManager : ScriptableObject
 
 	int minDB = -60;
 	int maxDB = 5;
-	//int volumeStep = 10;
-	//int volumeStep = 1;
-
 	public float GetRealVolume(string strValue)
 	{
 		if(float.TryParse(strValue, out float fValue))
 		{
-			//float audioVolume = minimumVolume + fValue * volumeStep;
-			//float audioVolume = minimumVolume + fValue;
 			float sliderParse = fValue / 100;
 			if (sliderParse <= 0) sliderParse = 0.001f;
 
-			//float audioVolume = (Mathf.Log10(volumeParse) * 20);
 			float audioVolume = (sliderParse == 0.001f ? minDB : (Mathf.Log10(sliderParse) * 20) + 5);
 			
-
-
 			return audioVolume;
 		}
 		else
@@ -81,10 +65,11 @@ public class AudioMixerManager : ScriptableObject
 		}
 	}
 
-	/*
-	public static AudioMixerManager LoadAudioMixerManager()
+
+	public string GetAudioFloatName(audioType audioFloatName)
 	{
-		return ScriptableObject.CreateInstance<AudioMixerManager>();
-	}*/
+		return audioTypeMixerKeyPair[audioFloatName];
+	}
+
 
 }

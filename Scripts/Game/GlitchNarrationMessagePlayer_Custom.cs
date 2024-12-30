@@ -46,7 +46,7 @@ public class GlitchNarrationMessagePlayer_Custom : MonoBehaviour
     {
         glitchNarrationMessageQueue.Enqueue(new GlitchNarrationMessage(glitchData.GlitchObject, GlitchNarrationMessagePlayingCoroutine(glitchData.GlitchObject, Wait())));
 
-        narrationSubtitlePlayer.ShowSubtitleForMoment("Narration", glitchData.GlitchNarrationKey, time);
+        narrationSubtitlePlayer.ShowSubtitleBriefly("Narration", glitchData.GlitchNarrationKey, time);
 
 
         IEnumerator Wait()

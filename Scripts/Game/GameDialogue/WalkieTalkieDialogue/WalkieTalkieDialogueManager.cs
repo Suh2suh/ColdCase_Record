@@ -81,7 +81,7 @@ public class WalkieTalkieDialogueManager : MonoBehaviour
 
 		if (placeInfo.isPlaceCleared == true)
 		{
-			narrationSubtitlePlayer.ShowSubtitleForLong("WalkieTalkie", "Glitch");
+			narrationSubtitlePlayer.ShowSubtitleConstantly("WalkieTalkie", "Glitch");
 			latestWrittenKey = "_Error";
 		}
 		else
@@ -203,7 +203,7 @@ public class WalkieTalkieDialogueManager : MonoBehaviour
 	void CreateWalkieTalkieDialogue(string key)
 	{
 		PlayWalkieTalkieAudio(key);
-		narrationSubtitlePlayer.ShowSubtitleForLong("WalkieTalkie", key);
+		narrationSubtitlePlayer.ShowSubtitleConstantly("WalkieTalkie", key);
 
 		latestWrittenKey = key;
 	}

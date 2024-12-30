@@ -1,13 +1,12 @@
-﻿using System.Collections;
-using UnityEngine;
+﻿using UnityEngine;
 
 
 [System.Serializable]
 public class Npc
 {
 	[Tooltip("Npc Name Should be same as Npc's Sheet name in Dialogue")]
-	[SerializeField] string npcName = "";
-	[SerializeField] PlaceInfo npcPlace;
+	[SerializeField] private string npcName = "";
+	[SerializeField] private PlaceInfo npcPlace;
 
 
 	#region Getters

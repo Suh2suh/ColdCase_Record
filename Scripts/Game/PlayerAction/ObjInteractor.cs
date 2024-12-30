@@ -1,5 +1,7 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -8,35 +10,35 @@ using UnityEngine.UI;
 public class ObjInteractor : MonoBehaviour
 {
 
-    #region Variables: Common
-
-    [SerializeField] IconController iconController;
-    [SerializeField] MaterialEffectManager materialEffectController;
-    [SerializeField] PlaceInfo placeInfo;
-    [SerializeField] TutorialInfo tutorialInfo;
-
-    static bool isMovingCoroutineOn;
-    public static bool IsMovingCoroutineOn { get => isMovingCoroutineOn; }
-
-    /// <summary>  Moving이 끝나고 'Object가 Camera 앞에 도착 / Camera 앞에서 사라지기 시작' 할 때마다 실행 -> Inspector On/Off 관리  </summary>
-    public static System.Action<Transform, bool> OnObservation;
+    #region Setting Variables
+    [SerializeField] private IconController iconController;
+    [SerializeField] private MaterialEffectManager materialEffectController;
+    [SerializeField] private PlaceInfo placeInfo;
+    [SerializeField] private TutorialInfo tutorialInfo;
 
 	#endregion
+
+	#region Private Variables
+	private static bool isMovingCoroutineOn;
+
+	#endregion
+
+	/// <summary>  
+    /// Moving이 끝나고 'Object가 Camera 앞에 도착 / Camera 앞에서 사라지기 시작' 할 때마다 실행 -> Inspector On/Off 관리  
+    /// </summary>
+	public static System.Action<Transform, bool> OnObservation;
+	public static bool IsMovingCoroutineOn { get => isMovingCoroutineOn; }
 
 
 	#region Unity Methods
 
 	private void Awake()
 	{
-        DialogueInfo.OnWalkieTalkieDialogueEnd += OnWalkieTalkieDialogueEnd;
-
-        originalCamPos = new();
-        originalCamRot = new();
+        camTransformRecord = new Stack<PosRotPair>();
     }
 
 	private void Start()
     {
-		//PlayerStatusManager.SetInterStatus(InteractionStatus.None);
         isMovingCoroutineOn = false;
     }
 
@@ -44,7 +46,7 @@ public class ObjInteractor : MonoBehaviour
     {
         if(!isMovingCoroutineOn)
 		{
-            CheckObservationEvent();
+			CheckObjectObservationEvent();
             CheckPlaceObservationEvent();
             CheckMousePlaceObservationEvent();
         }
@@ -60,73 +62,83 @@ public class ObjInteractor : MonoBehaviour
             RotateObjInObservation();
     }
 
-	private void OnDestroy()
-	{
-        DialogueInfo.OnWalkieTalkieDialogueEnd -= OnWalkieTalkieDialogueEnd;
-    }
+
+    #endregion
 
 
-	#endregion
-
-
-
+    // <For All Interaction Event>
+    // Check[interactionName]Event() -> Start[interactionName]()
+    // -> CheckEscapeFor[interactionName]() -> End[interactionName]()
+    // -> PostProcess[interactionName]()
 
     #region < Observable Place Interaction > -> With Mouse, On Place Observation
 
-    Transform mouseObservablePlace;
+    private IObjectInfo mouseObservablePlace;
 
-    void CheckMousePlaceObservationEvent()
+    private void CheckMousePlaceObservationEvent()
     {
-        if (PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.TalkingWalkieTalkie ||
-            PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.Inventory)
-            CheckEscapeForMousePlaceObservation();
+        //ObjectSorter.MouseHoveringObj.ObjTransform = null;
 
-
-        else
-        if (PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.Investigating)
+		bool isMousePlaceObservable = PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.Investigating;
+		if (isMousePlaceObservable)
         {
-            var isPlaceObservable = (ObjectSorter.MouseHoveringObj.objType == ObjectType.WalkieTalkie ||
-                                                     ObjectSorter.MouseHoveringObj.objType == ObjectType.Inventory);
-            if (isPlaceObservable && Input.GetMouseButtonDown(0))
+            var isPointingMousePlace = (ObjectSorter.MouseHoveringObj.ObjType == ObjectType.WalkieTalkie ||
+                                        ObjectSorter.MouseHoveringObj.ObjType == ObjectType.Inventory);
+            if (isPointingMousePlace && Input.GetMouseButtonDown(0))
             {
+                // [Validate]: Mouse Observable Place
                 var observablePlaceCandidate = ObjectSorter.MouseHoveringObj;
 
-                if (observablePlaceCandidate.objType == ObjectType.WalkieTalkie)
+                if (observablePlaceCandidate.ObjType == ObjectType.WalkieTalkie)
                     PlayerStatusManager.SetInterStatus(InteractionStatus.TalkingWalkieTalkie);
                 else
-                if (observablePlaceCandidate.objType == ObjectType.Inventory)
+                if (observablePlaceCandidate.ObjType == ObjectType.Inventory)
                     PlayerStatusManager.SetInterStatus(InteractionStatus.Inventory);
+                else
+                    return;
 
+                // [Start]: Mouse Place Observation
+                mouseObservablePlace = observablePlaceCandidate;
+                PreProcessMousePlaceObservation();
+				StartCoroutine(StartMousePlaceObservation());
 
-                mouseObservablePlace = observablePlaceCandidate.objTransform;
+				return;
+			}
 
-                CutHoverAndEmitFromObj(mouseObservablePlace);
-                if (mouseObservablePlace.TryGetComponent<PlayerCheckStatus>(out var playerCheckStatusController))
-                    playerCheckStatusController.SetStatusChecked();
-
-
-                StartCoroutine(StartMousePlaceObservation());
-            }
         }
-    }
 
-    IEnumerator StartMousePlaceObservation()
+
+		bool isObservingMousePlace = PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.TalkingWalkieTalkie ||
+							         PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.Inventory;
+		if (isObservingMousePlace)
+		{
+			CheckEscapeForMousePlaceObservation();
+		}
+	}
+    
+
+    private void PreProcessMousePlaceObservation()
     {
-        if (mouseObservablePlace.TryGetComponent<MouseHoverChecker>(out var mouseHoverChecker))
-            mouseHoverChecker.IsMouseHovering = false;
+		DisableEmissionOn(mouseObservablePlace.ObjTransform);
 
-        mouseObservablePlace.TryGetComponent<InteractiveEntityInfo>(out var interactiveEntityInfo);
-        var observePos = interactiveEntityInfo.ObservablePlaceInfo.ObservingPos;
-        yield return StartCoroutine(StartCamLerp(observePos.position, observePos.rotation, observeDuration));
+		if (mouseObservablePlace.ObjTransform.TryGetComponent<PlayerCheckStatus>(out var playerCheckStatusController))
+			playerCheckStatusController.SetStatusChecked();
+		if (mouseObservablePlace.ObjTransform.TryGetComponent<MouseHoverChecker>(out var mouseHoverChecker))
+			mouseHoverChecker.IsMouseHovering = false;
+	}
+
+    private IEnumerator StartMousePlaceObservation()
+    {
+		var mouseObservePos = mouseObservablePlace.ObjInteractInfo.ObservablePlaceInfo.ObservingPos;
+		yield return StartCoroutine(StartCamLerp(mouseObservePos.position, mouseObservePos.rotation, observeDuration));
+
+		// [Event Invoke]: "OnWalkieTalkieDialogueStart" when interaction start with walkietalkie
+		if (mouseObservablePlace.ObjType == ObjectType.WalkieTalkie && tutorialInfo.IsTutorialEnd)
+			DialogueInfo.OnWalkieTalkieDialogueStart();
+	}
 
 
-        if (interactiveEntityInfo.ObjectType == ObjectType.WalkieTalkie && tutorialInfo.IsTutorialEnd)
-            DialogueInfo.OnWalkieTalkieDialogueStart();
-    }
-
-
-
-    void CheckEscapeForMousePlaceObservation()
+    private void CheckEscapeForMousePlaceObservation()
     {
         if (Input.GetMouseButtonDown(1))
         {
@@ -138,76 +150,65 @@ public class ObjInteractor : MonoBehaviour
             if (!tutorialInfo.IsTutorialEnd) return;
 
             StartCoroutine(EndMousePlaceObservation());
-            //PopOriginalCamPosRot();
             StartCoroutine(EndPlaceObservation());
         }
     }
 
 
-
-    IEnumerator EndMousePlaceObservation()
+    private IEnumerator EndMousePlaceObservation()
     {
-        if(PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.TalkingWalkieTalkie &&
-            tutorialInfo.IsTutorialEnd)
-		{
+		// [Event Invoke]: "OnWalkieTalkieDialogueEnd" when interaction end with walkietalkie
+		if (PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.TalkingWalkieTalkie && tutorialInfo.IsTutorialEnd)
             DialogueInfo.OnWalkieTalkieDialogueEnd();
-        }
-        else
-		{
-            yield return StartCoroutine(LerpCamToPreviousPos(placeObserveDuration));
-            PostProcessMousePlaceObservation();
-        }
+
+        yield return StartCoroutine(LerpCamToPreviousPos(placeObserveDuration));
+
+        PostProcessMousePlaceObservation();
     }
 
-
-    void PostProcessMousePlaceObservation()
+    private void PostProcessMousePlaceObservation()
     {
         PlayerStatusManager.SetInterStatus(InteractionStatus.Investigating);
 
-        if(mouseObservablePlace.TryGetComponent<DetectiveToolInfo>(out var detectiveTool))
+        if(mouseObservablePlace.ObjTransform.TryGetComponent<DetectiveToolInfo>(out var detectiveTool))
             if (!tutorialInfo.IsTutorialEnd)
                 TutorialInfo.OnDetectiveToolTutorialed(detectiveTool.transform);
     }
 
 
-    void OnWalkieTalkieDialogueEnd()
-    {
-        StartCoroutine(LerpCamToPreviousPos(placeObserveDuration));
-        PostProcessMousePlaceObservation();
-    }
-
-
-
     #endregion
 
-    // CrossHair -> Mouse On_ Camera GO, Observable Place는 무조건 None 상태로 끝남.
     #region < Observable Place Interaction > - With CrossHair, On None
 
-    // Check~Event()
-    // Start~
-    // CheckEscapeFor~
-    // End~
-    // PostProcess~
+    /// <summary> For coming back with the most recent position </summary>
+    private Stack<PosRotPair> camTransformRecord;
+	private struct PosRotPair
+    {
+        public Vector3 pos { get; private set; }
+		public Quaternion rot { get; private set; }
+        public PosRotPair(Vector3 _pos, Quaternion _rot)
+        {
+            pos = _pos;
+            rot = _rot;
+		}
+    }
 
-    /// <summary> Cam Come back with the most recent position </summary>
-    List<Vector3> originalCamPos;
-    /// <summary> Cam Come back with the most recent rotation </summary>
-    List<Quaternion> originalCamRot;
-    float placeObserveDuration;
-    // Observe Place with E or Mouse
+	private float placeObserveDuration;
 
-    //ObservablePlace -> 상호작용 시 마우스 활성화되는 Obj
-    //상호작용 시 관찰하는 장소 (E로 상호작용 / 마우스로 상호작용)
-    void CheckPlaceObservationEvent()
+
+	//ObservablePlace -> 상호작용 시 마우스 활성화되는 Obj
+	//상호작용 시 관찰하는 장소 (E로 상호작용 / 마우스로 상호작용)
+	private void CheckPlaceObservationEvent()
 	{
-        bool isPointingObservablePlace = (ObjectSorter.CHPointingObj.objType == ObjectType.ObservablePlace  ||  
-                                                                ObjectSorter.CHPointingObj.objType == ObjectType.DetectiveDesk);
-        bool isObservable = (PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.None) &&  isPointingObservablePlace;
+        bool isPointingObservablePlace = (ObjectSorter.CHPointingObj.ObjType == ObjectType.ObservablePlace  ||  
+                                          ObjectSorter.CHPointingObj.ObjType == ObjectType.DetectiveDesk);
+        bool isObservable = (PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.None &&  isPointingObservablePlace);
         if (isObservable)
 		{
             if (HotKeyChecker.isKeyPressed[HotKey.Observe])
             {
-                var interactionStatus = (ObjectSorter.CHPointingObj.objType == ObjectType.ObservablePlace ? InteractionStatus.ObservingPlace : InteractionStatus.Investigating);
+                var interactionStatus = (ObjectSorter.CHPointingObj.ObjType == ObjectType.ObservablePlace ? 
+                                         InteractionStatus.ObservingPlace : InteractionStatus.Investigating);
                 PlayerStatusManager.SetInterStatus(interactionStatus);
 
                 StartPlaceObservation();
@@ -216,166 +217,161 @@ public class ObjInteractor : MonoBehaviour
         }
 
 
-        if (PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.ObservingPlace || PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.Investigating)
-            CheckEscapeForPlaceObservation();
+        bool isObservingCHPlace = PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.ObservingPlace ||
+                                  PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.Investigating;
+		if (isObservingCHPlace)
+        {
+			CheckEscapeForPlaceObservation();
+		}
         
     }
 
 
-    void StartPlaceObservation()
+	private void StartPlaceObservation()
 	{
-        var observablePlace = ObjectSorter.CHPointingObj.objTransform;
-        var observePos = observablePlace.GetComponent<InteractiveEntityInfo>().ObservablePlaceInfo.ObservingPos;
-        placeObserveDuration = observablePlace.GetComponent<InteractiveEntityInfo>().ObservablePlaceInfo.PlaceObserveDuration;
+        IObjectInfo observablePlace = ObjectSorter.CHPointingObj;
+        var observablePlaceInfo = observablePlace.ObjInteractInfo.ObservablePlaceInfo;
+
+		var observePos = observablePlaceInfo.ObservingPos;
+        placeObserveDuration = observablePlaceInfo.PlaceObserveDuration;
 
         StartCoroutine(StartCamLerp(observePos.position, observePos.rotation, placeObserveDuration));
     }
 
-    void CheckEscapeForPlaceObservation()
+	private void CheckEscapeForPlaceObservation()
 	{
         if (HotKeyChecker.isKeyPressed[HotKey.Observe] || HotKeyChecker.isKeyPressed[HotKey.Escape])
         {
-            //if (tutorialInfo.isTutorialEnd)  
             StartCoroutine(EndPlaceObservation());
         }
     }
 
-    IEnumerator EndPlaceObservation()
+    private IEnumerator EndPlaceObservation()
 	{
         yield return StartCoroutine(LerpCamToPreviousPos(placeObserveDuration));
 
         PostProcessPlaceObservation();
     }
 
-    void PostProcessPlaceObservation()
+    private void PostProcessPlaceObservation()
     {
-        //if (PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.ObservingPlace ||
-        //    PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.Investigating ||
-        //    PlayerStatusManager.GetCurrentInterStatus() == interactio)
-              PlayerStatusManager.SetInterStatus(InteractionStatus.None);
+        PlayerStatusManager.SetInterStatus(InteractionStatus.None);
     }
+
 
     #endregion
 
 
-
-    // CrossHair_ Camera COME
-    // 부모 오브젝트에 종속된 경우도 있기 때문에, localPosition으로 하는 게 가장 좋다.
     #region < Observable Object Interaction > 
 
     [Header("Observation Property")]
 
     [Tooltip ("Object 관찰 시, 카메라에 얼마나 가까이 위치할지 설정. Observe Object에 InteractiveEntityInfo 미부착시 적용됨")]
-    [SerializeField] float defaultZoomDistance = 0.45f;
+    [SerializeField] private float defaultZoomDistance = 0.45f;
     [Tooltip("Object 이동 시, 얼마나 느리게 이동할지 설정: 높을수록 느림 ")]
-    [SerializeField] float observeDuration = 0.5f;
+    [SerializeField] private float observeDuration = 0.5f;
     [Tooltip("Object 회전 시, 얼마나 빠르게 회전할지 설정: 높을수록 빠름")]
-    [SerializeField] float rotSpeed = 3f;
+    [SerializeField] private float rotSpeed = 3f;
 
-    Transform ObservingObj;
-    Vector3 originalObservingObjPos;
+	private IObjectInfo ObservingObj;
 
 
-    void CheckObservationEvent()
+	private void CheckObjectObservationEvent()
 	{
-        if (PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.ObservingObject)
-            CheckEscapeForObservation();
-
-
-        else
-        if (PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.None)
-            CheckCommonObjObservation();
-        else
+		if (PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.None)
+			CheckCHObjObservation();
+		else
         if (PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.Investigating)
-            CheckDeskObjObservation();
-    }
+			CheckMouseObjObservation();
 
-
-
-    void CheckDeskObjObservation()
-	{
-        //Debug.Log(ObjectSorter.MouseHoveringObj.objType);
-
-        var isObjObservable =  ObjectSorter.MouseHoveringObj.objType == ObjectType.ObservableObj;
-        if(isObjObservable)
-		{
-            if(Input.GetMouseButtonDown(0))
-			{
-                PlayerStatusManager.SetInterStatus(InteractionStatus.ObservingObject);
-
-                ObservingObj = ObjectSorter.MouseHoveringObj.objTransform;
-
-
-                // TODO: 코드 정리
-                var playerCheckStatusControllers = ObservingObj.GetComponentsInChildren<PlayerCheckStatus>();
-                if (ObservingObj.GetComponentsInChildren<PlayerCheckStatus>() != null)
-                    foreach (var playerCheckStatusController in playerCheckStatusControllers) playerCheckStatusController.SetStatusChecked();
-
-
-                // mouse checker -> deteective desk로 옮길지 고민 흠
-                CutHoverAndEmitFromObj(ObservingObj);
-
-
-                StartCoroutine(MoveObservingObj());
-            }
-		}
+        else
+		if (PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.ObservingObject)
+			CheckEscapeForObservation();
 	}
 
-    void CheckCommonObjObservation()
-	{
-        var isObjObservable = (ObjectSorter.CHPointingObj.objType == ObjectType.ObservableObj);
 
-        if (isObjObservable)
+    private void CheckCHObjObservation()
+	{
+        bool isPointingObservableObj = (ObjectSorter.CHPointingObj.ObjType == ObjectType.ObservableObj);
+        if (isPointingObservableObj)
 		{
             if(HotKeyChecker.isKeyPressed[HotKey.Observe])
 			{
                 PlayerStatusManager.SetInterStatus(InteractionStatus.ObservingObject);
 
-                ObservingObj = ObjectSorter.CHPointingObj.objTransform;
+                ObservingObj = ObjectSorter.CHPointingObj;
 
-                StartCoroutine(MoveObservingObj());
-            }
+                StartObjectObservation();
+			}
         }
     }
-
-
-    IEnumerator MoveObservingObj()
+	private void CheckMouseObjObservation()
 	{
-        var objectInfo = ObservingObj.GetComponent<InteractiveEntityInfo>();
+		bool isPointingObservableObj = ObjectSorter.MouseHoveringObj.ObjType == ObjectType.ObservableObj;
+		if (isPointingObservableObj)
+		{
+			if (Input.GetMouseButtonDown(0))
+			{
+				PlayerStatusManager.SetInterStatus(InteractionStatus.ObservingObject);
 
-        var zoomDistance = (objectInfo ? objectInfo.ObservableObjectInfo.ZoomDistance : defaultZoomDistance);
-        Vector3 observePos = Camera.main.ScreenToWorldPoint(ScreenPositionGetter.GetScreenPosition(objectInfo.ObservableObjectInfo.ScreenPosition, zoomDistance));
+                ObservingObj = ObjectSorter.MouseHoveringObj;
 
-        originalObservingObjPos = ObservingObj.transform.position;
-        if (objectInfo.ObservableObjectInfo.IsFaceCamera)
+				PreprocessDeskObjObservation();
+				void PreprocessDeskObjObservation()
+				{
+					var playerCheckStatusControllers = ObservingObj.ObjTransform.GetComponentsInChildren<PlayerCheckStatus>();
+					if (ObservingObj.ObjTransform.GetComponentsInChildren<PlayerCheckStatus>() != null)
+						foreach (var playerCheckStatusController in playerCheckStatusControllers)
+							playerCheckStatusController.SetStatusChecked();
+					DisableEmissionOn(ObservingObj.ObjTransform);
+				}
+
+				StartObjectObservation();
+			}
+		}
+	}
+
+
+	private void StartObjectObservation()
+    {
+		StartCoroutine(MoveObservingObj());
+	}
+    private IEnumerator MoveObservingObj()
+	{
+        var observingObjInfo = ObservingObj.ObjInteractInfo.ObservableObjectInfo;
+
+		float zoomDistance = observingObjInfo.ZoomDistance;
+		Vector3 observePos = Camera.main.ScreenToWorldPoint(ScreenPositionGetter.GetScreenPosition(observingObjInfo.ScreenPosition, zoomDistance));
+
+        if (observingObjInfo.IsFaceCamera)
 		{
             var observeRot = Quaternion.LookRotation(-Camera.main.transform.forward, Camera.main.transform.up);
-            yield return StartCoroutine(LerpObjPosRot(ObservingObj, observePos, observeRot, observeDuration));
-            OnObservation(ObservingObj, true);
+            yield return StartCoroutine(LerpObjPosRot(ObservingObj.ObjTransform, observePos, observeRot, observeDuration));
+            OnObservation(ObservingObj.ObjTransform, true); //TODO(1230): OnObservation Action도 IObjectInfo로 바꿔줄 것
         }
         else
 		{
-            yield return StartCoroutine(LerpObjPos(ObservingObj, observePos, observeDuration));
-            OnObservation(ObservingObj, true);
+            yield return StartCoroutine(LerpObjPos(ObservingObj.ObjTransform, observePos, observeDuration));
+            OnObservation(ObservingObj.ObjTransform, true);
 		}
         
     }
 
 
-    void RotateObjInObservation()
+    private void RotateObjInObservation()
     {
         if (PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.ObservingObject)
         {
-            if (ObservingObj.TryGetComponent<InteractiveEntityInfo>(out var objectInfo))
-            {
-                if (objectInfo.ObservableObjectInfo.IsRotatable) RotateObjOnDrag(ObservingObj, rotSpeed);
-            }
-        }
+			if (ObservingObj.ObjInteractInfo.ObservableObjectInfo.IsRotatable) 
+                RotateObjOnDrag(ObservingObj.ObjTransform, rotSpeed);
+		}
     }
 
 
 
-    /// <summary>  Key check 됐을 때 동일한 프레임으로 들어가기 때문에, 먼저 체크하거나 이전에 return 안 하면 바로 변경됨 -> 주의  </summary>
+    /// <summary>  
+    /// Key check 됐을 때 동일한 프레임으로 들어가기 때문에, 먼저 체크하거나 이전에 return 안 하면 바로 변경됨 -> 주의  
+    /// </summary>
     void CheckEscapeForObservation()
 	{
         if (PlayerStatusManager.GetPrevInterStatus() == InteractionStatus.None || PlayerStatusManager.GetPrevInterStatus() == InteractionStatus.Obtaining)
@@ -409,10 +405,11 @@ public class ObjInteractor : MonoBehaviour
 
     IEnumerator EndObservation()
 	{
-        OnObservation(ObservingObj, false);
+        OnObservation(ObservingObj.ObjTransform, false);
 
-        var obsvObjInfo = ObservingObj.GetComponent<InteractiveEntityInfo>();
-        yield return StartCoroutine(LerpObjPosRotLocally(ObservingObj, obsvObjInfo.ObservableObjectInfo.objLocalPos, obsvObjInfo.ObservableObjectInfo.objRot, observeDuration));
+        yield return StartCoroutine(LerpObjPosRotLocally(ObservingObj.ObjTransform, 
+                                                         ObservingObj.ObjInteractInfo.ObservableObjectInfo.objLocalPos,
+														 ObservingObj.ObjInteractInfo.ObservableObjectInfo.objRot, observeDuration));
 
         PostProcessObservation();
     }
@@ -434,7 +431,7 @@ public class ObjInteractor : MonoBehaviour
 
 
         if( ! tutorialInfo.IsTutorialEnd && TutorialInfo.OnDetectiveToolTutorialed != null)
-            TutorialInfo.OnDetectiveToolTutorialed(ObservingObj); 
+            TutorialInfo.OnDetectiveToolTutorialed(ObservingObj.ObjTransform); 
 
         
         ObservingObj = null;
@@ -443,7 +440,6 @@ public class ObjInteractor : MonoBehaviour
 
     #endregion
 
-    // CrossHair, Mouse
     #region < Obtainable Object Interaction >
 
     [Header("Obtainment Property")]
@@ -455,27 +451,26 @@ public class ObjInteractor : MonoBehaviour
     /// True: 관찰 오브젝트 아래의 히든 혈흔이 화면에 보일 때, 카메라가 혈흔 가리키고 있을 때
     /// </summary>
     bool isObtainableObjDetected = false;
-    Transform ObtainableObj = null;
+    IObjectInfo ObtainableObj;
 
 
     // isObtainableObjDetected -> None인 상태, Observe인 상태
     void CheckObtainmentEvent()
     {
-        var isPlayerOnObtaiableStatus = (PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.None ||
-                                                PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.ObservingObject ||
-                                                PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.ObservingPlace);
-        if (isPlayerOnObtaiableStatus)
+        var isOnObtaiableStatus = (PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.None ||
+                                   PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.ObservingObject ||
+                                   PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.ObservingPlace);
+        if (isOnObtaiableStatus)
         {
             DetectObtainableObj();
 
-            // 이건 Mouse
             if (isObtainableObjDetected)
             {
                 if (PlayerStatusManager.GetCurrentInterStatus() != InteractionStatus.None)
-                    iconController.DisplayIconOnObj(iconController.FIconObj, ObtainableObj);
+                    iconController.DisplayIconOnObj(iconController.FIconObj, ObtainableObj.ObjTransform);
 
                 bool isObtainablePhase = PhaseChecker.GetCurrentPhase() >= 'B';
-                if ( ! isObtainablePhase || ! ObtainableObj.GetComponent<InteractiveEntityInfo>().IsInteractive)
+                if ( ! isObtainablePhase || ! ObtainableObj.ObjInteractInfo.IsInteractive)
                     return;
 
 
@@ -499,11 +494,10 @@ public class ObjInteractor : MonoBehaviour
         if (PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.None || 
             PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.ObservingPlace)
         {
-            var obtainableObjCandidate = (PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.None ? ObjectSorter.CHPointingObj : ObjectSorter.MouseHoveringObj);
-
-            if (obtainableObjCandidate.objType == ObjectType.ObtainableObj)
+            var pointingObj = (PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.None ? ObjectSorter.CHPointingObj : ObjectSorter.MouseHoveringObj);
+            if (pointingObj.ObjType == ObjectType.ObtainableObj)
             {
-                ObtainableObj = obtainableObjCandidate.objTransform;
+                ObtainableObj = pointingObj;
 
                 isObtainableObjDetected = true;
             }
@@ -513,12 +507,14 @@ public class ObjInteractor : MonoBehaviour
             }
         }
         else
-        if(PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.ObservingObject && !isMovingCoroutineOn && ObservingObj.childCount != 0)
+        if(PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.ObservingObject &&
+           !isMovingCoroutineOn && ObservingObj.ObjTransform.childCount != 0)
 		{
+            // TODO(1230): 더 다듬을 수 있을 것 같음. HiddenObj 클래스 제작하지 않고 리팩토링 방법 모색할 것
             ObtainableObj = GetHiddenObtObj();
 
-            if (ObtainableObj)
-                isObtainableObjDetected = CameraViewportObjectChecker.CheckObjSeenOnCamera(ObtainableObj);
+            if (ObtainableObj != null)
+                isObtainableObjDetected = CameraViewportObjectChecker.CheckObjSeenOnCamera(ObtainableObj.ObjTransform);
         }
         else
         {
@@ -527,27 +523,36 @@ public class ObjInteractor : MonoBehaviour
     }
 
 
-    readonly List<InteractiveEntityInfo> hinddenObjInfo = new();
-    Transform GetHiddenObtObj()
+	private class HiddenObj : IObjectInfo
+	{
+        public ObjectType ObjType { get => ObjectType.ObtainableObj; }
+		public Transform ObjTransform { get; set; }
+		public InteractiveEntityInfo ObjInteractInfo { get; set; }
+	}
+    HiddenObj hiddenObj;
+
+	readonly List<InteractiveEntityInfo> hinddenObjInfo = new();
+    IObjectInfo GetHiddenObtObj()
     {
-        // TODO: 더 깔끔하게 할 수 있는 방법 찾기, 나중에 제한 걸어서 한 번만 실행시키게 할 수 있을 듯
-
         hinddenObjInfo.Clear();
-        hinddenObjInfo.AddRange(ObservingObj.transform.GetComponentsInChildren<InteractiveEntityInfo>(false));
+        hinddenObjInfo.AddRange(ObservingObj.ObjTransform.GetComponentsInChildren<InteractiveEntityInfo>(false));
 
-        // 굳이 맨 처음 거 지울 필요 없이, 제일 아래에 있는 애가 숨겨진 오브젝트임.
+        // 제일 아래에 있는 애가 숨겨진 오브젝트
         if (hinddenObjInfo.Count == 2)
         {
-            // hinddenObjInfo.RemoveAt(0);
+            InteractiveEntityInfo hiddenObjInfo = hinddenObjInfo[1];
+            if (hiddenObjInfo && hiddenObjInfo.ObjectType == ObjectType.ObtainableObj)
+            {
+                hiddenObj.ObjInteractInfo = hiddenObjInfo;
+				hiddenObj.ObjTransform = hiddenObjInfo.transform;
 
-            //InteractiveEntityInfo HiddenObj = hinddenObjInfo[0];
-            InteractiveEntityInfo HiddenObj = hinddenObjInfo[1];
-            if (HiddenObj && HiddenObj.ObjectType == ObjectType.ObtainableObj)
-                return HiddenObj.transform;
+				return hiddenObj;
+			}
         }
 
         return null;
     }
+
 
     void StartObtainment()
 	{
@@ -558,11 +563,11 @@ public class ObjInteractor : MonoBehaviour
 
     IEnumerator ProcessObtainment()
     {
-        var objInfo = ObtainableObj.GetComponent<InteractiveEntityInfo>();
-        var effectType = objInfo.ObtainableObjectInfo.EffectType;
-        var effectDirection = objInfo.ObtainableObjectInfo.PhaseDirection;
+        var obtainableObjectInfo = ObtainableObj.ObjInteractInfo.ObtainableObjectInfo;
+		var effectType = obtainableObjectInfo.EffectType;
+        var effectDirection = obtainableObjectInfo.PhaseDirection;
 
-        yield return StartCoroutine(materialEffectController.ApplyMaterialEffect(ObtainableObj, effectType, effectDirection, obtainingDuration));
+        yield return StartCoroutine(materialEffectController.ApplyMaterialEffect(ObtainableObj.ObjTransform, effectType, effectDirection, obtainingDuration));
 
         PostProcessObtainment();
     }
@@ -570,11 +575,12 @@ public class ObjInteractor : MonoBehaviour
     void PostProcessObtainment()
     {
         // 1. 인벤토리 삽입
-        var item = ObtainableObj.GetComponent<InteractiveEntityInfo>().ObtainableObjectInfo.EvidenceType;
+        var item = ObtainableObj.ObjInteractInfo.ObtainableObjectInfo.EvidenceType;
         if (item)  item.SetIsObtained(true);
 
         // 2. 오브젝트 제거
-        if(ObtainableObj.gameObject.activeSelf) ObtainableObj.gameObject.SetActive(false);
+        if(ObtainableObj.ObjTransform.gameObject.activeSelf)
+            ObtainableObj.ObjTransform.gameObject.SetActive(false);
         ObtainableObj = null;
         isObtainableObjDetected = false;
 
@@ -584,9 +590,7 @@ public class ObjInteractor : MonoBehaviour
     #endregion
 
 
-
-
-    #region Interactive Furniture Interaction
+    #region < Interactive Furniture Interaction >
 
     // Check~Event()
     // Start~
@@ -594,11 +598,11 @@ public class ObjInteractor : MonoBehaviour
 	{
         if(PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.None)
 		{
-            var isFurnitureInteractive = (ObjectSorter.CHPointingObj.objType == ObjectType.InteractiveFurniture);
+            var isFurnitureInteractive = (ObjectSorter.CHPointingObj.ObjType == ObjectType.InteractiveFurniture);
 
             if (isFurnitureInteractive && HotKeyChecker.isKeyPressed[HotKey.Interact])
             {
-                var interactiveFurniture = ObjectSorter.CHPointingObj.objTransform;
+                var interactiveFurniture = ObjectSorter.CHPointingObj.ObjTransform;
                 var interactiveFurnitureController = interactiveFurniture.GetComponent<InteractiveFurnitureController>();
 
                 interactiveFurnitureController.Interact();
@@ -611,9 +615,7 @@ public class ObjInteractor : MonoBehaviour
     #endregion
 
 
-
-
-    #region < Common Object Interaction >
+    #region < Utility >
 
 
     #region Rotate Object
@@ -625,10 +627,10 @@ public class ObjInteractor : MonoBehaviour
                 float rotX = Input.GetAxis("Mouse X") * rotSpeed;
                 float rotY = Input.GetAxis("Mouse Y") * rotSpeed;
 
-                //Vector3 horizontalVec = -Camera.main.transform.up;
-                Vector3 horizontalVec = Vector3.down;
-                //Vector3 verticalVec = Camera.main.transform.right;
-                Vector3 verticalVec = Vector3.right;
+                Vector3 horizontalVec = -Camera.main.transform.up;
+                //Vector3 horizontalVec = Vector3.down;
+                Vector3 verticalVec = Camera.main.transform.right;
+                //Vector3 verticalVec = Vector3.right;
 
                 Obj.transform.Rotate(horizontalVec, rotX, Space.World);
                 Obj.transform.Rotate(verticalVec, rotY, Space.World);
@@ -657,21 +659,6 @@ public class ObjInteractor : MonoBehaviour
                 }
                 Obj.position = pickingPos;
 
-
-            // if prevStatus == investigating, currentStatus == observing -> 현재 object의 ui 표시
-            /*
-            if(!forReturn)
-		    {
-                switch (PlayerStatusManager.GetCurrentInterStatus())
-                {
-                    case InteractionStatus.ObservingObject:
-                        OnObservation(ObservingObj, true);
-
-                        break;
-                }
-            }*/
-
-
                 isMovingCoroutineOn = false;
         }
 
@@ -699,9 +686,46 @@ public class ObjInteractor : MonoBehaviour
             Obj.SetPositionAndRotation(lerpPos, lerpRot);
 
             isMovingCoroutineOn = false;
-        /*
-        if (forReturn)
-		    {
+
+        }
+
+
+	    // lerpPos를 local로 변경, Rot는 그대로 ㅇㅇ
+	    // observeObject를 돌려놓을 때
+
+	    /// <summary>
+	    /// observeObject를 돌려놓을 때 사용, LocalPos를 돌려놓아야 해서 이렇게 함 일단 나중에 분해
+	    /// </summary>
+	    IEnumerator LerpObjPosRotLocally(Transform Obj, Vector3 lerpLocalPos, Quaternion lerpRot, float duration)
+	    {
+            isMovingCoroutineOn = true;
+
+            float time = 0;
+            float lerpT = time / duration;
+
+            Vector3 objLocalPos = Obj.localPosition;
+            Quaternion objRot = Obj.rotation;
+
+            while (time < duration)
+            {
+                //Obj.SetPositionAndRotation(Vector3.Lerp(objPos, lerpPos, lerpT), Quaternion.Lerp(objRot, lerpRot, lerpT));
+                Obj.localPosition = Vector3.Lerp(objLocalPos, lerpLocalPos, lerpT);
+                Obj.rotation = Quaternion.Lerp(objRot, lerpRot, lerpT);
+
+                time += Time.deltaTime;
+                lerpT = time / duration;
+
+                yield return null;
+            }
+            //Obj.SetPositionAndRotation(lerpPos, lerpRot);
+            Obj.localPosition = lerpLocalPos;
+            Obj.rotation = lerpRot;
+
+
+            isMovingCoroutineOn = false;
+            /*
+            if (forReturn)
+            {
                 switch (PlayerStatusManager.GetCurrentInterStatus())
                 {
                     case InteractionStatus.ObservingObject:
@@ -717,102 +741,25 @@ public class ObjInteractor : MonoBehaviour
                     case InteractionStatus.TalkingWalkieTalkie:
                         PostProcessMousePlaceObservation();
 
-                    break;
+                        break;
                 }
             }
             else
-		    {
+            {
                 switch (PlayerStatusManager.GetCurrentInterStatus())
                 {
                     case InteractionStatus.ObservingObject:
                         OnObservation(ObservingObj, true);
 
                         break;
-                case InteractionStatus.TalkingWalkieTalkie:
-                    if(tutorialInfo.isTutorialEnd)
-                        DialogueInfo.OnWalkieTalkieDialogueStart();
-
-                    break;
+                }
             }
+            */
+            // OnObservation
+
+
+
         }
-        */
-
-        // OnObservation
-
-
-    }
-
-
-    // lerpPos를 local로 변경, Rot는 그대로 ㅇㅇ
-    // observeObject를 돌려놓을 때
-
-    /// <summary>
-    /// observeObject를 돌려놓을 때 사용, LocalPos를 돌려놓아야 해서 이렇게 함 일단 나중에 분해
-    /// </summary>
-    IEnumerator LerpObjPosRotLocally(Transform Obj, Vector3 lerpLocalPos, Quaternion lerpRot, float duration)
-	{
-        isMovingCoroutineOn = true;
-
-        float time = 0;
-        float lerpT = time / duration;
-
-        Vector3 objLocalPos = Obj.localPosition;
-        Quaternion objRot = Obj.rotation;
-
-        while (time < duration)
-        {
-            //Obj.SetPositionAndRotation(Vector3.Lerp(objPos, lerpPos, lerpT), Quaternion.Lerp(objRot, lerpRot, lerpT));
-            Obj.localPosition = Vector3.Lerp(objLocalPos, lerpLocalPos, lerpT);
-            Obj.rotation = Quaternion.Lerp(objRot, lerpRot, lerpT);
-
-            time += Time.deltaTime;
-            lerpT = time / duration;
-
-            yield return null;
-        }
-        //Obj.SetPositionAndRotation(lerpPos, lerpRot);
-        Obj.localPosition = lerpLocalPos;
-        Obj.rotation = lerpRot;
-
-
-        isMovingCoroutineOn = false;
-        /*
-        if (forReturn)
-        {
-            switch (PlayerStatusManager.GetCurrentInterStatus())
-            {
-                case InteractionStatus.ObservingObject:
-                    PostProcessObservation();
-
-                    break;
-                case InteractionStatus.Investigating:
-                case InteractionStatus.ObservingPlace:
-                    PostProcessPlaceObservation();
-
-                    break;
-                case InteractionStatus.Inventory:
-                case InteractionStatus.TalkingWalkieTalkie:
-                    PostProcessMousePlaceObservation();
-
-                    break;
-            }
-        }
-        else
-        {
-            switch (PlayerStatusManager.GetCurrentInterStatus())
-            {
-                case InteractionStatus.ObservingObject:
-                    OnObservation(ObservingObj, true);
-
-                    break;
-            }
-        }
-        */
-        // OnObservation
-
-
-
-    }
 
 
         #endregion
@@ -822,10 +769,7 @@ public class ObjInteractor : MonoBehaviour
     IEnumerator StartCamLerp(Vector3 goalPos, Quaternion goalRot, float duration)
 	{
         var playerCamera = Camera.main.transform;
-
-        originalCamPos.Add(playerCamera.position);
-        originalCamRot.Add(playerCamera.rotation);
-
+        camTransformRecord.Push(new PosRotPair(playerCamera.position, playerCamera.rotation));
 
         yield return StartCoroutine(LerpObjPosRot(playerCamera, goalPos, goalRot, duration));
     }
@@ -833,48 +777,38 @@ public class ObjInteractor : MonoBehaviour
     IEnumerator LerpCamToPreviousPos(float duration)
 	{
         var playerCamera = Camera.main.transform;
-        //StartCoroutine(LerpObjPosRot(playerCamera, originalCamPos[^1], originalCamRot[^1], duration, forReturn: true));
-        yield return StartCoroutine(LerpObjPosRot(playerCamera, originalCamPos[^1], originalCamRot[^1], duration));
+        var previousCamTransform = camTransformRecord.Pop();
+
+        yield return StartCoroutine(LerpObjPosRot(playerCamera, previousCamTransform.pos, previousCamTransform.rot, duration));
 
         PostProcessCamLerp();
     }
         
     void PostProcessCamLerp()
 	{
-        PopOriginalCamPosRot();
-
-        if (originalCamPos.Count == 0)
+        if (camTransformRecord.Count == 0)
             Camera.main.transform.localPosition = new Vector3(0, 0, 0);
     }
 
-    void PopOriginalCamPosRot()
+
+	#endregion
+
+
+    /// <summary>
+    /// 다른 곳에 옮겨도 되지 않을까? 큼
+    /// </summary>
+    /// <param name="objTransform"></param>
+	void DisableEmissionOn(Transform objTransform)
 	{
-        if (originalCamPos.Count < 0 || originalCamRot.Count < 0)   return;
+		if (objTransform.TryGetComponent<EmitOnMouseHover>(out var mouseHoverEmitter))
+			mouseHoverEmitter.ForceStopEmitAndBlink();
 
-        //Debug.Log("Pos: " + originalCamPos.Count);
-        //Debug.Log("Rot: " + originalCamRot.Count);
-
-        originalCamPos.RemoveAt(originalCamPos.Count - 1);
-        originalCamRot.RemoveAt(originalCamRot.Count - 1);
-    }
+		// 튜토리얼 중인데 클릭한 거면, 내려놨을 때 반짝이면 안되므로 Never로 지정.
+		if (!tutorialInfo.IsTutorialEnd) mouseHoverEmitter.SetBlinkCondition(EmitOnMouseHover.BlinkCondition.Never);
+	}
 
 
-    #endregion
-
-
-
-    #endregion
-
-
-    void CutHoverAndEmitFromObj(Transform objTransform)
-    {
-        if (objTransform.TryGetComponent<EmitOnMouseHover>(out var mouseHoverEmitter))
-            mouseHoverEmitter.ForceStopEmitAndBlink();
-
-
-        // 튜토리얼 중인데 클릭한 거면, 내려놨을 때 반짝이면 안되므로 Never로 지정.
-        if (!tutorialInfo.IsTutorialEnd) mouseHoverEmitter.SetBlinkCondition(EmitOnMouseHover.BlinkCondition.Never);
-    }
+	#endregion
 
 
 }

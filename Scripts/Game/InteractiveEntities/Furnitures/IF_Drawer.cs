@@ -3,18 +3,24 @@ using UnityEngine;
 
 public class IF_Drawer : InteractiveFurnitureController
 {
-	[SerializeField] float drawDistance = 0.3f;
-	[SerializeField] bool isOpened = false;
+	#region Setting Variables
+	[SerializeField] private float drawDistance = 0.3f;
+	[SerializeField] private bool isOpened = false;
 
-	[SerializeField] AudioSource audioSource;
-	[SerializeField] AudioClip openSFX;
-	[SerializeField] AudioClip closeSFX;
-	
-	Vector3 closedPosition;
-	Vector3 openedPosition;
+	[SerializeField] private AudioSource audioSource;
+	[SerializeField] private AudioClip openSFX;
+	[SerializeField] private AudioClip closeSFX;
 
-	bool isCoroutineOn = false;
-	float drawDuration = 0.5f;
+	#endregion
+
+	#region Private Variables
+	private Vector3 closedPosition;
+	private Vector3 openedPosition;
+
+	private bool isCoroutineOn = false;
+	private float drawDuration = 0.5f;
+
+	#endregion
 
 
 	private void Awake()
@@ -24,7 +30,7 @@ public class IF_Drawer : InteractiveFurnitureController
 	}
 
 
-	override public void Interact()
+	public override void Interact()
 	{
 		if (!isCoroutineOn)
 		{
@@ -34,7 +40,7 @@ public class IF_Drawer : InteractiveFurnitureController
 	}
 
 	
-	IEnumerator InteractDrawer()
+	private IEnumerator InteractDrawer()
 	{
 		isCoroutineOn = true;
 		Vector3 startPos = (isOpened ? openedPosition : closedPosition);
@@ -54,12 +60,13 @@ public class IF_Drawer : InteractiveFurnitureController
 		}
 
 		if (isOpened) CloseDrawer();
-		else				  OpenDrawer();
+		else		  OpenDrawer();
+
 		isCoroutineOn = false;
 	}
 
 
-	void OpenDrawer()
+	private void OpenDrawer()
 	{
 		transform.localPosition = closedPosition + (Vector3.forward * drawDistance);
 

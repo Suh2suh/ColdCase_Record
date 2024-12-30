@@ -5,7 +5,7 @@ using UnityEngine;
 
 public abstract class TextLanguageUpdater : MonoBehaviour
 {
-	[SerializeField] DialogueInfo dialogueInfo;
+	[SerializeField] private DialogueInfo dialogueInfo;
 
 
 	#region Unity Methods
@@ -29,15 +29,13 @@ public abstract class TextLanguageUpdater : MonoBehaviour
 	#endregion
 
 
-	void OnLanguageChanged()
+	private void OnLanguageChanged()
 	{
-		Debug.Log(dialogueInfo.language);
+		// Debug.Log(dialogueInfo.language);
 		ApplyTextWithKeys();
 	}
-
-
-
 	protected abstract void ApplyTextWithKeys();
+
 
 	protected void ApplyTranslatedText(TextMeshProUGUI textObj, string sheetName, string keyCode)
 	{

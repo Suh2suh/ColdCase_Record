@@ -7,29 +7,34 @@ namespace ColdCase.Dialogue.Book.Utility
 {
 	public class BookChapterNavigator
 	{
-		public bool isBookChapterNavigatable = true;
-
+		#region Private Variables
 
 		/// <summary> must match with BookChapterIndexerCreator.IndexerLayer </summary>
-		static readonly int indexerLayer = 1 << 10;
+		private static readonly int indexerLayer = 1 << 10;
 
 
-		bool isHoveringChapterIndexer;
+		private bool isHoveringChapterIndexer;
 
-		Transform lastHoveredIndexer;
-		Transform newHoveredIndexer;
+		private Transform lastHoveredIndexer;
+		private Transform newHoveredIndexer;
 
 
-		Dictionary<string, GameObject> bookChapterDic;
+		private Dictionary<string, GameObject> bookChapterDic;
 
-		string navigatingChapterName;
+		private string navigatingChapterName;
+
+
+		#endregion
+
+		public bool isBookChapterNavigatable = true;
 		public string NavigatingChapterName { get => navigatingChapterName; }
-
 
 		public System.Action<string, string> OnChapterFlipped;
 		public System.Action OnIndexerPointerEnter;
 		public System.Action OnIndexerPointerExit;
 
+
+		#region Initializers
 
 		public BookChapterNavigator(List<GameObject> bookChapters, int initialChapterIndex)
 		{
@@ -67,6 +72,9 @@ namespace ColdCase.Dialogue.Book.Utility
 		}
 
 
+		#endregion
+
+
 		public void ManageChapterNavigationOnUpdate()
 		{
 			if (!isBookChapterNavigatable) return;
@@ -82,8 +90,9 @@ namespace ColdCase.Dialogue.Book.Utility
 		}
 
 
-		// indexer check는 한 번에 하나만 하기 때문에, 굳이 여러 인스턴스 함수가 있을 필요 X
-		/// <summary> <b>*Must*0 use this method on update,</b> for indexer mouse check </summary>
+		/// <summary> 
+		/// <b>*Must* use this method on update,</b> for indexer mouse check
+		/// </summary>
 		public void CheckPointingIndexerOnFixedUpdate()
 		{
 			newHoveredIndexer = ObjectSorter.GetRayhitOnMouse(indexerLayer, 50f);
@@ -126,5 +135,7 @@ namespace ColdCase.Dialogue.Book.Utility
 
 			if(OnChapterFlipped != null) OnChapterFlipped(previousChapterName, newChapterName);
 		}
+
+
 	}
 }
