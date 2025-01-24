@@ -1,11 +1,10 @@
-using System;
+using Cysharp.Threading.Tasks;
 using System.Collections;
 using System.Collections.Generic;
-using Unity.Mathematics;
 using UnityEngine;
-using UnityEngine.UI;
 
 
+//TODO: [250124]Refactoring needed
 /// <summary>  Should be attatched to obj with 'FirstPersonAIO' Component(=Player)  </summary>
 public class ObjInteractor : MonoBehaviour
 {
@@ -16,10 +15,11 @@ public class ObjInteractor : MonoBehaviour
     [SerializeField] private PlaceInfo placeInfo;
     [SerializeField] private TutorialInfo tutorialInfo;
 
-	#endregion
+    #endregion
 
-	#region Private Variables
-	private static bool isMovingCoroutineOn;
+    #region Private Variables
+    bool isLerpEventOn = false;
+    private CameraLerper plyaerCameraLerper;
 
 	#endregion
 
@@ -27,24 +27,23 @@ public class ObjInteractor : MonoBehaviour
     /// Moving이 끝나고 'Object가 Camera 앞에 도착 / Camera 앞에서 사라지기 시작' 할 때마다 실행 -> Inspector On/Off 관리  
     /// </summary>
 	public static System.Action<Transform, bool> OnObservation;
-	public static bool IsMovingCoroutineOn { get => isMovingCoroutineOn; }
 
 
 	#region Unity Methods
 
 	private void Awake()
 	{
-        camTransformRecord = new Stack<PosRotPair>();
-    }
+        plyaerCameraLerper = new CameraLerper(Camera.main);
+	}
 
 	private void Start()
     {
-        isMovingCoroutineOn = false;
+		isLerpEventOn = false;
     }
 
 	private void Update()
     {
-        if(!isMovingCoroutineOn)
+        if(!isLerpEventOn)
 		{
 			CheckObjectObservationEvent();
             CheckPlaceObservationEvent();
@@ -58,7 +57,7 @@ public class ObjInteractor : MonoBehaviour
 
     private void FixedUpdate()
 	{
-        if(!isMovingCoroutineOn)
+        if(!isLerpEventOn)
             RotateObjInObservation();
     }
 
@@ -77,8 +76,6 @@ public class ObjInteractor : MonoBehaviour
 
     private void CheckMousePlaceObservationEvent()
     {
-        //ObjectSorter.MouseHoveringObj.ObjTransform = null;
-
 		bool isMousePlaceObservable = PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.Investigating;
 		if (isMousePlaceObservable)
         {
@@ -100,7 +97,7 @@ public class ObjInteractor : MonoBehaviour
                 // [Start]: Mouse Place Observation
                 mouseObservablePlace = observablePlaceCandidate;
                 PreProcessMousePlaceObservation();
-				StartCoroutine(StartMousePlaceObservation());
+                StartMousePlaceObservation().Forget();
 
 				return;
 			}
@@ -127,14 +124,21 @@ public class ObjInteractor : MonoBehaviour
 			mouseHoverChecker.IsMouseHovering = false;
 	}
 
-    private IEnumerator StartMousePlaceObservation()
+    private async UniTaskVoid StartMousePlaceObservation()
     {
 		var mouseObservePos = mouseObservablePlace.ObjInteractInfo.ObservablePlaceInfo.ObservingPos;
-		yield return StartCoroutine(StartCamLerp(mouseObservePos.position, mouseObservePos.rotation, observeDuration));
+
+        isLerpEventOn = true;
+		bool succeed = await plyaerCameraLerper.MoveToNewTransform(mouseObservePos.position, mouseObservePos.rotation, observeDuration,
+                                                                   this.GetCancellationTokenOnDestroy());
+		isLerpEventOn = false;
 
 		// [Event Invoke]: "OnWalkieTalkieDialogueStart" when interaction start with walkietalkie
-		if (mouseObservablePlace.ObjType == ObjectType.WalkieTalkie && tutorialInfo.IsTutorialEnd)
-			DialogueInfo.OnWalkieTalkieDialogueStart();
+		if (succeed)
+        {
+			if (mouseObservablePlace.ObjType == ObjectType.WalkieTalkie && tutorialInfo.IsTutorialEnd)
+				DialogueInfo.OnWalkieTalkieDialogueStart();
+		}
 	}
 
 
@@ -142,34 +146,38 @@ public class ObjInteractor : MonoBehaviour
     {
         if (Input.GetMouseButtonDown(1))
         {
-            StartCoroutine(EndMousePlaceObservation());
+            EndMousePlaceObservation().Forget();
         }
         else
         if (HotKeyChecker.isKeyPressed[HotKey.Observe] || HotKeyChecker.isKeyPressed[HotKey.Escape])
         {
             if (!tutorialInfo.IsTutorialEnd) return;
 
-            StartCoroutine(EndMousePlaceObservation());
-            StartCoroutine(EndPlaceObservation());
+            EndMousePlaceObservation().Forget();
+            EndPlaceObservation().Forget();
         }
     }
 
 
-    private IEnumerator EndMousePlaceObservation()
+    private async UniTaskVoid EndMousePlaceObservation()
     {
 		// [Event Invoke]: "OnWalkieTalkieDialogueEnd" when interaction end with walkietalkie
 		if (PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.TalkingWalkieTalkie && tutorialInfo.IsTutorialEnd)
             DialogueInfo.OnWalkieTalkieDialogueEnd();
 
-        yield return StartCoroutine(LerpCamToPreviousPos(placeObserveDuration));
+        isLerpEventOn = true;
+		bool succeed = await plyaerCameraLerper.BackToPrevTransform(placeObserveDuration, this.GetCancellationTokenOnDestroy());
+        isLerpEventOn = false;
 
-        PostProcessMousePlaceObservation();
+        if(succeed)
+		    PostProcessMousePlaceObservation();
     }
 
     private void PostProcessMousePlaceObservation()
     {
         PlayerStatusManager.SetInterStatus(InteractionStatus.Investigating);
 
+        //TODO: [250124] BUGFIX
         if(mouseObservablePlace.ObjTransform.TryGetComponent<DetectiveToolInfo>(out var detectiveTool))
             if (!tutorialInfo.IsTutorialEnd)
                 TutorialInfo.OnDetectiveToolTutorialed(detectiveTool.transform);
@@ -181,17 +189,6 @@ public class ObjInteractor : MonoBehaviour
     #region < Observable Place Interaction > - With CrossHair, On None
 
     /// <summary> For coming back with the most recent position </summary>
-    private Stack<PosRotPair> camTransformRecord;
-	private struct PosRotPair
-    {
-        public Vector3 pos { get; private set; }
-		public Quaternion rot { get; private set; }
-        public PosRotPair(Vector3 _pos, Quaternion _rot)
-        {
-            pos = _pos;
-            rot = _rot;
-		}
-    }
 
 	private float placeObserveDuration;
 
@@ -211,7 +208,7 @@ public class ObjInteractor : MonoBehaviour
                                          InteractionStatus.ObservingPlace : InteractionStatus.Investigating);
                 PlayerStatusManager.SetInterStatus(interactionStatus);
 
-                StartPlaceObservation();
+                StartPlaceObservation().Forget();
                 return;
             }
         }
@@ -227,7 +224,7 @@ public class ObjInteractor : MonoBehaviour
     }
 
 
-	private void StartPlaceObservation()
+	private async UniTaskVoid StartPlaceObservation()
 	{
         IObjectInfo observablePlace = ObjectSorter.CHPointingObj;
         var observablePlaceInfo = observablePlace.ObjInteractInfo.ObservablePlaceInfo;
@@ -235,22 +232,27 @@ public class ObjInteractor : MonoBehaviour
 		var observePos = observablePlaceInfo.ObservingPos;
         placeObserveDuration = observablePlaceInfo.PlaceObserveDuration;
 
-        StartCoroutine(StartCamLerp(observePos.position, observePos.rotation, placeObserveDuration));
-    }
+        isLerpEventOn = true;
+		await plyaerCameraLerper.MoveToNewTransform(observePos.position, observePos.rotation, placeObserveDuration, this.GetCancellationTokenOnDestroy());
+        isLerpEventOn = false;
+	}
 
 	private void CheckEscapeForPlaceObservation()
 	{
         if (HotKeyChecker.isKeyPressed[HotKey.Observe] || HotKeyChecker.isKeyPressed[HotKey.Escape])
         {
-            StartCoroutine(EndPlaceObservation());
+            EndPlaceObservation().Forget();
         }
     }
 
-    private IEnumerator EndPlaceObservation()
+    private async UniTaskVoid EndPlaceObservation()
 	{
-        yield return StartCoroutine(LerpCamToPreviousPos(placeObserveDuration));
+        isLerpEventOn = true;
+        bool succeed = await plyaerCameraLerper.BackToPrevTransform(placeObserveDuration, this.GetCancellationTokenOnDestroy());
+        isLerpEventOn = false;
 
-        PostProcessPlaceObservation();
+        if(succeed)
+		    PostProcessPlaceObservation();
     }
 
     private void PostProcessPlaceObservation()
@@ -334,28 +336,36 @@ public class ObjInteractor : MonoBehaviour
 
 	private void StartObjectObservation()
     {
-		StartCoroutine(MoveObservingObj());
+        MoveObservingObj().Forget();
 	}
-    private IEnumerator MoveObservingObj()
+
+    private async UniTaskVoid MoveObservingObj()
 	{
+        isLerpEventOn = true;
+
         var observingObjInfo = ObservingObj.ObjInteractInfo.ObservableObjectInfo;
 
 		float zoomDistance = observingObjInfo.ZoomDistance;
 		Vector3 observePos = Camera.main.ScreenToWorldPoint(ScreenPositionGetter.GetScreenPosition(observingObjInfo.ScreenPosition, zoomDistance));
 
+        bool lerpSucceed = false;
         if (observingObjInfo.IsFaceCamera)
 		{
             var observeRot = Quaternion.LookRotation(-Camera.main.transform.forward, Camera.main.transform.up);
-            yield return StartCoroutine(LerpObjPosRot(ObservingObj.ObjTransform, observePos, observeRot, observeDuration));
-            OnObservation(ObservingObj.ObjTransform, true); //TODO(1230): OnObservation Action도 IObjectInfo로 바꿔줄 것
+			lerpSucceed = await ObjectLerper.LerpObjTransformAsync(ObservingObj.ObjTransform, observePos, observeRot, observeDuration, Space.World,
+                                                                    this.GetCancellationTokenOnDestroy());
         }
         else
 		{
-            yield return StartCoroutine(LerpObjPos(ObservingObj.ObjTransform, observePos, observeDuration));
-            OnObservation(ObservingObj.ObjTransform, true);
+			lerpSucceed = await ObjectLerper.LerpObjTransformAsync(ObservingObj.ObjTransform, observePos, observeDuration, Space.World,
+												                    this.GetCancellationTokenOnDestroy());
 		}
-        
-    }
+
+		if (lerpSucceed)
+			OnObservation(ObservingObj.ObjTransform, true); //TODO(1230): OnObservation Action도 IObjectInfo로 바꿔줄 것
+
+        isLerpEventOn = false;
+	}
 
 
     private void RotateObjInObservation()
@@ -372,13 +382,13 @@ public class ObjInteractor : MonoBehaviour
     /// <summary>  
     /// Key check 됐을 때 동일한 프레임으로 들어가기 때문에, 먼저 체크하거나 이전에 return 안 하면 바로 변경됨 -> 주의  
     /// </summary>
-    void CheckEscapeForObservation()
+    private void CheckEscapeForObservation()
 	{
         if (PlayerStatusManager.GetPrevInterStatus() == InteractionStatus.None || PlayerStatusManager.GetPrevInterStatus() == InteractionStatus.Obtaining)
         {
-            if ((HotKeyChecker.isKeyPressed[HotKey.Observe] || HotKeyChecker.isKeyPressed[HotKey.Escape]))
+            if (HotKeyChecker.isKeyPressed[HotKey.Observe] || HotKeyChecker.isKeyPressed[HotKey.Escape])
             {
-                StartCoroutine(EndObservation());
+                EndObservation().Forget();
             }
         }
 
@@ -388,14 +398,14 @@ public class ObjInteractor : MonoBehaviour
         {
             if (Input.GetMouseButtonDown(1))
             {
-                StartCoroutine(EndObservation());
+                EndObservation().Forget();
             }else
             if (HotKeyChecker.isKeyPressed[HotKey.Observe] || HotKeyChecker.isKeyPressed[HotKey.Escape])
             {
                 if (!tutorialInfo.IsTutorialEnd) return;
 
-                StartCoroutine(EndObservation());
-                StartCoroutine(EndPlaceObservation());
+                EndObservation().Forget();
+                EndPlaceObservation().Forget();
             }
         }
 
@@ -403,18 +413,22 @@ public class ObjInteractor : MonoBehaviour
 
 
 
-    IEnumerator EndObservation()
+    private async UniTaskVoid EndObservation()
 	{
         OnObservation(ObservingObj.ObjTransform, false);
 
-        yield return StartCoroutine(LerpObjPosRotLocally(ObservingObj.ObjTransform, 
-                                                         ObservingObj.ObjInteractInfo.ObservableObjectInfo.objLocalPos,
-														 ObservingObj.ObjInteractInfo.ObservableObjectInfo.objRot, observeDuration));
+        isLerpEventOn = true;
+		bool succeed = await ObjectLerper.LerpObjTransformAsync(ObservingObj.ObjTransform,
+										                        ObservingObj.ObjInteractInfo.ObservableObjectInfo.objLocalPos,
+										                        ObservingObj.ObjInteractInfo.ObservableObjectInfo.objRot,
+										                        observeDuration, Space.Self, this.GetCancellationTokenOnDestroy());
+        isLerpEventOn = false;
 
-        PostProcessObservation();
+        if(succeed)
+		    PostProcessObservation();
     }
 
-    void PostProcessObservation()
+    private void PostProcessObservation()
     {
         switch(PlayerStatusManager.GetPrevInterStatus())
 		{
@@ -445,17 +459,17 @@ public class ObjInteractor : MonoBehaviour
     [Header("Obtainment Property")]
 
     [Tooltip("Object 획득 시, 얼마나 느리게 획득할지 설정: 높을수록 느림 ")]
-    [SerializeField] float obtainingDuration = 3.0f;
+    [SerializeField] private float obtainingDuration = 3.0f;
 
     /// <summary>
     /// True: 관찰 오브젝트 아래의 히든 혈흔이 화면에 보일 때, 카메라가 혈흔 가리키고 있을 때
     /// </summary>
-    bool isObtainableObjDetected = false;
-    IObjectInfo ObtainableObj;
+    private bool isObtainableObjDetected = false;
+    private IObjectInfo ObtainableObj;
 
 
     // isObtainableObjDetected -> None인 상태, Observe인 상태
-    void CheckObtainmentEvent()
+    private void CheckObtainmentEvent()
     {
         var isOnObtaiableStatus = (PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.None ||
                                    PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.ObservingObject ||
@@ -489,7 +503,7 @@ public class ObjInteractor : MonoBehaviour
 
     }
 
-    void DetectObtainableObj()
+    private void DetectObtainableObj()
     {
         if (PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.None || 
             PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.ObservingPlace)
@@ -508,7 +522,7 @@ public class ObjInteractor : MonoBehaviour
         }
         else
         if(PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.ObservingObject &&
-           !isMovingCoroutineOn && ObservingObj.ObjTransform.childCount != 0)
+           !isLerpEventOn && ObservingObj.ObjTransform.childCount != 0)
 		{
             // TODO(1230): 더 다듬을 수 있을 것 같음. HiddenObj 클래스 제작하지 않고 리팩토링 방법 모색할 것
             ObtainableObj = GetHiddenObtObj();
@@ -529,10 +543,10 @@ public class ObjInteractor : MonoBehaviour
 		public Transform ObjTransform { get; set; }
 		public InteractiveEntityInfo ObjInteractInfo { get; set; }
 	}
-    HiddenObj hiddenObj;
+	private HiddenObj hiddenObj;
 
-	readonly List<InteractiveEntityInfo> hinddenObjInfo = new();
-    IObjectInfo GetHiddenObtObj()
+	private readonly List<InteractiveEntityInfo> hinddenObjInfo = new();
+    private IObjectInfo GetHiddenObtObj()
     {
         hinddenObjInfo.Clear();
         hinddenObjInfo.AddRange(ObservingObj.ObjTransform.GetComponentsInChildren<InteractiveEntityInfo>(false));
@@ -554,14 +568,14 @@ public class ObjInteractor : MonoBehaviour
     }
 
 
-    void StartObtainment()
+	private void StartObtainment()
 	{
         iconController.ActivateIcon(iconController.FIconObj, false);
         StartCoroutine(ProcessObtainment());
     }
 
 
-    IEnumerator ProcessObtainment()
+    private IEnumerator ProcessObtainment()
     {
         var obtainableObjectInfo = ObtainableObj.ObjInteractInfo.ObtainableObjectInfo;
 		var effectType = obtainableObjectInfo.EffectType;
@@ -572,7 +586,7 @@ public class ObjInteractor : MonoBehaviour
         PostProcessObtainment();
     }
 
-    void PostProcessObtainment()
+	private void PostProcessObtainment()
     {
         // 1. 인벤토리 삽입
         var item = ObtainableObj.ObjInteractInfo.ObtainableObjectInfo.EvidenceType;
@@ -587,14 +601,14 @@ public class ObjInteractor : MonoBehaviour
         PlayerStatusManager.SetInterStatus(PlayerStatusManager.GetPrevInterStatus());
     }
 
-    #endregion
+	#endregion
 
 
-    #region < Interactive Furniture Interaction >
+	#region < Interactive Furniture Interaction >
 
-    // Check~Event()
-    // Start~
-    void CheckInteractionEvent()
+	// Check~Event()
+	// Start~
+	private void CheckInteractionEvent()
 	{
         if(PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.None)
 		{
@@ -640,165 +654,13 @@ public class ObjInteractor : MonoBehaviour
 
 	#endregion
 
-	#region Pick Up & Get Back Object
-
-        IEnumerator LerpObjPos(Transform Obj, Vector3 pickingPos, float duration)
-        {
-                isMovingCoroutineOn = true;
 
 
-                float time = 0;
-                Vector3 objPos = Obj.position;
-
-                while (time < duration)
-                {
-                    Obj.position = Vector3.Lerp(objPos, pickingPos, time / duration);
-                    time += Time.deltaTime;
-
-                    yield return null;
-                }
-                Obj.position = pickingPos;
-
-                isMovingCoroutineOn = false;
-        }
-
-
-        IEnumerator LerpObjPosRot(Transform Obj, Vector3 lerpPos, Quaternion lerpRot,  float duration)
-        {
-            isMovingCoroutineOn = true;
-
-
-            float time = 0;
-            float lerpT = time / duration;
-
-            Vector3 objPos = Obj.position;
-            Quaternion objRot = Obj.rotation;
-
-            while (time < duration)
-            {
-                Obj.SetPositionAndRotation(Vector3.Lerp(objPos, lerpPos, lerpT), Quaternion.Lerp(objRot, lerpRot, lerpT));
-
-                time += Time.deltaTime;
-                lerpT = time / duration;
-
-                yield return null;
-            }
-            Obj.SetPositionAndRotation(lerpPos, lerpRot);
-
-            isMovingCoroutineOn = false;
-
-        }
-
-
-	    // lerpPos를 local로 변경, Rot는 그대로 ㅇㅇ
-	    // observeObject를 돌려놓을 때
-
-	    /// <summary>
-	    /// observeObject를 돌려놓을 때 사용, LocalPos를 돌려놓아야 해서 이렇게 함 일단 나중에 분해
-	    /// </summary>
-	    IEnumerator LerpObjPosRotLocally(Transform Obj, Vector3 lerpLocalPos, Quaternion lerpRot, float duration)
-	    {
-            isMovingCoroutineOn = true;
-
-            float time = 0;
-            float lerpT = time / duration;
-
-            Vector3 objLocalPos = Obj.localPosition;
-            Quaternion objRot = Obj.rotation;
-
-            while (time < duration)
-            {
-                //Obj.SetPositionAndRotation(Vector3.Lerp(objPos, lerpPos, lerpT), Quaternion.Lerp(objRot, lerpRot, lerpT));
-                Obj.localPosition = Vector3.Lerp(objLocalPos, lerpLocalPos, lerpT);
-                Obj.rotation = Quaternion.Lerp(objRot, lerpRot, lerpT);
-
-                time += Time.deltaTime;
-                lerpT = time / duration;
-
-                yield return null;
-            }
-            //Obj.SetPositionAndRotation(lerpPos, lerpRot);
-            Obj.localPosition = lerpLocalPos;
-            Obj.rotation = lerpRot;
-
-
-            isMovingCoroutineOn = false;
-            /*
-            if (forReturn)
-            {
-                switch (PlayerStatusManager.GetCurrentInterStatus())
-                {
-                    case InteractionStatus.ObservingObject:
-                        PostProcessObservation();
-
-                        break;
-                    case InteractionStatus.Investigating:
-                    case InteractionStatus.ObservingPlace:
-                        PostProcessPlaceObservation();
-
-                        break;
-                    case InteractionStatus.Inventory:
-                    case InteractionStatus.TalkingWalkieTalkie:
-                        PostProcessMousePlaceObservation();
-
-                        break;
-                }
-            }
-            else
-            {
-                switch (PlayerStatusManager.GetCurrentInterStatus())
-                {
-                    case InteractionStatus.ObservingObject:
-                        OnObservation(ObservingObj, true);
-
-                        break;
-                }
-            }
-            */
-            // OnObservation
-
-
-
-        }
-
-
-        #endregion
-
-    #region CamLerp
-
-    IEnumerator StartCamLerp(Vector3 goalPos, Quaternion goalRot, float duration)
-	{
-        var playerCamera = Camera.main.transform;
-        camTransformRecord.Push(new PosRotPair(playerCamera.position, playerCamera.rotation));
-
-        yield return StartCoroutine(LerpObjPosRot(playerCamera, goalPos, goalRot, duration));
-    }
-
-    IEnumerator LerpCamToPreviousPos(float duration)
-	{
-        var playerCamera = Camera.main.transform;
-        var previousCamTransform = camTransformRecord.Pop();
-
-        yield return StartCoroutine(LerpObjPosRot(playerCamera, previousCamTransform.pos, previousCamTransform.rot, duration));
-
-        PostProcessCamLerp();
-    }
-        
-    void PostProcessCamLerp()
-	{
-        if (camTransformRecord.Count == 0)
-            Camera.main.transform.localPosition = new Vector3(0, 0, 0);
-    }
-
-
-	#endregion
-
-
-    /// <summary>
-    /// 다른 곳에 옮겨도 되지 않을까? 큼
-    /// </summary>
-    /// <param name="objTransform"></param>
-	void DisableEmissionOn(Transform objTransform)
+	/// <summary>
+	/// 다른 곳에 옮겨도 되지 않을까? 큼
+	/// </summary>
+	/// <param name="objTransform"></param>
+	private void DisableEmissionOn(Transform objTransform)
 	{
 		if (objTransform.TryGetComponent<EmitOnMouseHover>(out var mouseHoverEmitter))
 			mouseHoverEmitter.ForceStopEmitAndBlink();
