@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using UnityEngine;
 
-public class IF_Drawer : InteractiveFurnitureController
+public class IF_Drawer : InteractiveFurnitureBase
 {
 	#region Setting Variables
 	[SerializeField] private float drawDistance = 0.3f;

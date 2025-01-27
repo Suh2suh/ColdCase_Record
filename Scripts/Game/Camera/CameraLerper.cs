@@ -22,6 +22,7 @@ public class CameraLerper
 
 	#endregion
 
+	//TODO : [250127] 추가: 현재 카메라가 lerp중인지 표시하는 bool
 
 	public async UniTask<bool> MoveToNewTransform(Vector3 goalPos, Quaternion goalRot, float duration, CancellationToken cancellationToken)
 	{

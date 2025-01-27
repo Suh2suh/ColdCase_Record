@@ -2,7 +2,7 @@
 
 
 [RequireComponent(typeof(InteractiveEntityInfo))]
-public class InteractiveFurnitureController :  MonoBehaviour, IInteractiveFurniture
+public abstract class InteractiveFurnitureBase :  MonoBehaviour, IInteractiveFurniture
 {
 	public virtual void Interact()
 	{

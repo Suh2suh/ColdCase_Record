@@ -15,10 +15,10 @@ public class ObjInteractor : MonoBehaviour
     [SerializeField] private PlaceInfo placeInfo;
     [SerializeField] private TutorialInfo tutorialInfo;
 
-    #endregion
+	#endregion
 
-    #region Private Variables
-    bool isLerpEventOn = false;
+	#region Private Variables
+	private bool isLerpEventOn = false;
     private CameraLerper plyaerCameraLerper;
 
 	#endregion
@@ -34,6 +34,12 @@ public class ObjInteractor : MonoBehaviour
 	private void Awake()
 	{
         plyaerCameraLerper = new CameraLerper(Camera.main);
+
+        Initialize(objectMouseObservationHandler);
+        Initialize(objectCHObservationHandler);
+        Initialize(placeMouseObservationHandler);
+        Initialize(placeCHObservationHandler);
+
 	}
 
 	private void Start()
@@ -45,415 +51,167 @@ public class ObjInteractor : MonoBehaviour
     {
         if(!isLerpEventOn)
 		{
-			CheckObjectObservationEvent();
-            CheckPlaceObservationEvent();
-            CheckMousePlaceObservationEvent();
-        }
+            ManageObjectObservation();
+            ManagePlaceObservation();
+		}
 
         CheckObtainmentEvent();
         CheckInteractionEvent();
+
         //Debug.Log(isMovingCoroutineOn + " / " + PlayerStatusManager.GetCurrentInterStatus() + " / " + ObjectSorter.CHPointingObj.objType + " / " + HotKeyChecker.isKeyPressed[HotKey.Observe]);
     }
 
-    private void FixedUpdate()
+
+	#endregion
+
+	#region Initializaiton
+
+	private void Initialize(IInteractionHandler interactionHandler)
 	{
-        if(!isLerpEventOn)
-            RotateObjInObservation();
-    }
+		switch (interactionHandler)
+		{
+			case ObjectObservationHandlerBase:
+				var observationHandler = (ObjectObservationHandlerBase)interactionHandler;
+				observationHandler.Initialize(observeDuration, rotSpeed, this.GetCancellationTokenOnDestroy());
+
+				if (observationHandler is ObjectMouseObservationHandler)
+					(observationHandler as ObjectMouseObservationHandler).tutorialInfo = tutorialInfo;
+
+				break;
+            case PlaceMouseObservationHandler:
+                (interactionHandler as PlaceMouseObservationHandler).Initialize(plyaerCameraLerper, tutorialInfo, this.GetCancellationTokenOnDestroy());
+
+                break;
+            case PlaceCHObservationHandler:
+				(interactionHandler as PlaceCHObservationHandler).Initialize(plyaerCameraLerper, this.GetCancellationTokenOnDestroy());
+
+                break;
+		}
+	}
 
 
-    #endregion
+	#endregion
 
 
-    // <For All Interaction Event>
-    // Check[interactionName]Event() -> Start[interactionName]()
-    // -> CheckEscapeFor[interactionName]() -> End[interactionName]()
-    // -> PostProcess[interactionName]()
+	#region < Observable Place Interaction > 
 
-    #region < Observable Place Interaction > -> With Mouse, On Place Observation
+	private PlaceMouseObservationHandler placeMouseObservationHandler = new();
+	private PlaceCHObservationHandler placeCHObservationHandler = new();
 
-    private IObjectInfo mouseObservablePlace;
 
-    private void CheckMousePlaceObservationEvent()
-    {
-		bool isMousePlaceObservable = PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.Investigating;
-		if (isMousePlaceObservable)
-        {
-            var isPointingMousePlace = (ObjectSorter.MouseHoveringObj.ObjType == ObjectType.WalkieTalkie ||
-                                        ObjectSorter.MouseHoveringObj.ObjType == ObjectType.Inventory);
-            if (isPointingMousePlace && Input.GetMouseButtonDown(0))
-            {
-                // [Validate]: Mouse Observable Place
-                var observablePlaceCandidate = ObjectSorter.MouseHoveringObj;
+	private void ManagePlaceObservation()
+	{
+		ManagePlaceMouseObservation();
+		ManagePlaceCHObservation();
+	}
 
-                if (observablePlaceCandidate.ObjType == ObjectType.WalkieTalkie)
-                    PlayerStatusManager.SetInterStatus(InteractionStatus.TalkingWalkieTalkie);
-                else
-                if (observablePlaceCandidate.ObjType == ObjectType.Inventory)
-                    PlayerStatusManager.SetInterStatus(InteractionStatus.Inventory);
-                else
-                    return;
 
-                // [Start]: Mouse Place Observation
-                mouseObservablePlace = observablePlaceCandidate;
-                PreProcessMousePlaceObservation();
-                StartMousePlaceObservation().Forget();
+	private void ManagePlaceMouseObservation()
+	{
+		if (placeMouseObservationHandler.canStartInteraction && Input.GetMouseButtonDown(0))
+		{
+			placeMouseObservationHandler.StartInteraction();
+		}
 
-				return;
+		else
+		if (placeMouseObservationHandler.canEscapeInteraction)
+		{
+			if (Input.GetMouseButtonDown(1))
+			{
+				placeMouseObservationHandler.EndInteraction();
 			}
+			else
+			if (HotKeyChecker.isKeyPressed[HotKey.Observe] || HotKeyChecker.isKeyPressed[HotKey.Escape])
+			{
+				if (!tutorialInfo.IsTutorialEnd)
+					return;
 
-        }
+				placeMouseObservationHandler.EndInteraction();
+				placeCHObservationHandler.EndInteraction();
+			}
+		}
+	}
 
 
-		bool isObservingMousePlace = PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.TalkingWalkieTalkie ||
-							         PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.Inventory;
-		if (isObservingMousePlace)
+	private void ManagePlaceCHObservation()
+	{
+		if (placeCHObservationHandler.canStartInteraction && HotKeyChecker.isKeyPressed[HotKey.Observe])
 		{
-			CheckEscapeForMousePlaceObservation();
+			placeCHObservationHandler.StartInteraction();
 		}
-	}
-    
 
-    private void PreProcessMousePlaceObservation()
-    {
-		DisableEmissionOn(mouseObservablePlace.ObjTransform);
-
-		if (mouseObservablePlace.ObjTransform.TryGetComponent<PlayerCheckStatus>(out var playerCheckStatusController))
-			playerCheckStatusController.SetStatusChecked();
-		if (mouseObservablePlace.ObjTransform.TryGetComponent<MouseHoverChecker>(out var mouseHoverChecker))
-			mouseHoverChecker.IsMouseHovering = false;
-	}
-
-    private async UniTaskVoid StartMousePlaceObservation()
-    {
-		var mouseObservePos = mouseObservablePlace.ObjInteractInfo.ObservablePlaceInfo.ObservingPos;
-
-        isLerpEventOn = true;
-		bool succeed = await plyaerCameraLerper.MoveToNewTransform(mouseObservePos.position, mouseObservePos.rotation, observeDuration,
-                                                                   this.GetCancellationTokenOnDestroy());
-		isLerpEventOn = false;
-
-		// [Event Invoke]: "OnWalkieTalkieDialogueStart" when interaction start with walkietalkie
-		if (succeed)
-        {
-			if (mouseObservablePlace.ObjType == ObjectType.WalkieTalkie && tutorialInfo.IsTutorialEnd)
-				DialogueInfo.OnWalkieTalkieDialogueStart();
-		}
-	}
-
-
-    private void CheckEscapeForMousePlaceObservation()
-    {
-        if (Input.GetMouseButtonDown(1))
-        {
-            EndMousePlaceObservation().Forget();
-        }
-        else
-        if (HotKeyChecker.isKeyPressed[HotKey.Observe] || HotKeyChecker.isKeyPressed[HotKey.Escape])
-        {
-            if (!tutorialInfo.IsTutorialEnd) return;
-
-            EndMousePlaceObservation().Forget();
-            EndPlaceObservation().Forget();
-        }
-    }
-
-
-    private async UniTaskVoid EndMousePlaceObservation()
-    {
-		// [Event Invoke]: "OnWalkieTalkieDialogueEnd" when interaction end with walkietalkie
-		if (PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.TalkingWalkieTalkie && tutorialInfo.IsTutorialEnd)
-            DialogueInfo.OnWalkieTalkieDialogueEnd();
-
-        isLerpEventOn = true;
-		bool succeed = await plyaerCameraLerper.BackToPrevTransform(placeObserveDuration, this.GetCancellationTokenOnDestroy());
-        isLerpEventOn = false;
-
-        if(succeed)
-		    PostProcessMousePlaceObservation();
-    }
-
-    private void PostProcessMousePlaceObservation()
-    {
-        PlayerStatusManager.SetInterStatus(InteractionStatus.Investigating);
-
-        //TODO: [250124] BUGFIX
-        if(mouseObservablePlace.ObjTransform.TryGetComponent<DetectiveToolInfo>(out var detectiveTool))
-            if (!tutorialInfo.IsTutorialEnd)
-                TutorialInfo.OnDetectiveToolTutorialed(detectiveTool.transform);
-    }
-
-
-    #endregion
-
-    #region < Observable Place Interaction > - With CrossHair, On None
-
-    /// <summary> For coming back with the most recent position </summary>
-
-	private float placeObserveDuration;
-
-
-	//ObservablePlace -> 상호작용 시 마우스 활성화되는 Obj
-	//상호작용 시 관찰하는 장소 (E로 상호작용 / 마우스로 상호작용)
-	private void CheckPlaceObservationEvent()
-	{
-        bool isPointingObservablePlace = (ObjectSorter.CHPointingObj.ObjType == ObjectType.ObservablePlace  ||  
-                                          ObjectSorter.CHPointingObj.ObjType == ObjectType.DetectiveDesk);
-        bool isObservable = (PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.None &&  isPointingObservablePlace);
-        if (isObservable)
+		else
+		if (placeCHObservationHandler.canEscapeInteraction && (HotKeyChecker.isKeyPressed[HotKey.Observe] || HotKeyChecker.isKeyPressed[HotKey.Escape]))
 		{
-            if (HotKeyChecker.isKeyPressed[HotKey.Observe])
-            {
-                var interactionStatus = (ObjectSorter.CHPointingObj.ObjType == ObjectType.ObservablePlace ? 
-                                         InteractionStatus.ObservingPlace : InteractionStatus.Investigating);
-                PlayerStatusManager.SetInterStatus(interactionStatus);
-
-                StartPlaceObservation().Forget();
-                return;
-            }
-        }
-
-
-        bool isObservingCHPlace = PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.ObservingPlace ||
-                                  PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.Investigating;
-		if (isObservingCHPlace)
-        {
-			CheckEscapeForPlaceObservation();
+			placeCHObservationHandler.EndInteraction();
 		}
-        
-    }
-
-
-	private async UniTaskVoid StartPlaceObservation()
-	{
-        IObjectInfo observablePlace = ObjectSorter.CHPointingObj;
-        var observablePlaceInfo = observablePlace.ObjInteractInfo.ObservablePlaceInfo;
-
-		var observePos = observablePlaceInfo.ObservingPos;
-        placeObserveDuration = observablePlaceInfo.PlaceObserveDuration;
-
-        isLerpEventOn = true;
-		await plyaerCameraLerper.MoveToNewTransform(observePos.position, observePos.rotation, placeObserveDuration, this.GetCancellationTokenOnDestroy());
-        isLerpEventOn = false;
 	}
 
-	private void CheckEscapeForPlaceObservation()
-	{
-        if (HotKeyChecker.isKeyPressed[HotKey.Observe] || HotKeyChecker.isKeyPressed[HotKey.Escape])
-        {
-            EndPlaceObservation().Forget();
-        }
-    }
 
-    private async UniTaskVoid EndPlaceObservation()
-	{
-        isLerpEventOn = true;
-        bool succeed = await plyaerCameraLerper.BackToPrevTransform(placeObserveDuration, this.GetCancellationTokenOnDestroy());
-        isLerpEventOn = false;
+	#endregion
 
-        if(succeed)
-		    PostProcessPlaceObservation();
-    }
+	#region < Observable Object Interaction > 
 
-    private void PostProcessPlaceObservation()
-    {
-        PlayerStatusManager.SetInterStatus(InteractionStatus.None);
-    }
-
-
-    #endregion
-
-
-    #region < Observable Object Interaction > 
-
-    [Header("Observation Property")]
-
-    [Tooltip ("Object 관찰 시, 카메라에 얼마나 가까이 위치할지 설정. Observe Object에 InteractiveEntityInfo 미부착시 적용됨")]
-    [SerializeField] private float defaultZoomDistance = 0.45f;
+	[Header("Observation Property")]
     [Tooltip("Object 이동 시, 얼마나 느리게 이동할지 설정: 높을수록 느림 ")]
     [SerializeField] private float observeDuration = 0.5f;
     [Tooltip("Object 회전 시, 얼마나 빠르게 회전할지 설정: 높을수록 빠름")]
     [SerializeField] private float rotSpeed = 3f;
 
-	private IObjectInfo ObservingObj;
+
+    private ObjectMouseObservationHandler objectMouseObservationHandler = new ObjectMouseObservationHandler();
+    private ObjectCHObservationHandler objectCHObservationHandler = new ObjectCHObservationHandler();
 
 
-	private void CheckObjectObservationEvent()
-	{
-		if (PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.None)
-			CheckCHObjObservation();
-		else
-        if (PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.Investigating)
-			CheckMouseObjObservation();
-
-        else
-		if (PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.ObservingObject)
-			CheckEscapeForObservation();
+    private void ManageObjectObservation()
+    {
+        ManageObjectMouseObservation();
+        ManageObjectCHObservation();
 	}
 
 
-    private void CheckCHObjObservation()
-	{
-        bool isPointingObservableObj = (ObjectSorter.CHPointingObj.ObjType == ObjectType.ObservableObj);
-        if (isPointingObservableObj)
+    private void ManageObjectMouseObservation()
+    {
+		if (objectMouseObservationHandler.canStartInteraction && Input.GetMouseButtonDown(0))
+        {
+			objectMouseObservationHandler.StartInteraction();
+		}
+
+        else
+		if (objectMouseObservationHandler.canEscapeInteraction)
 		{
-            if(HotKeyChecker.isKeyPressed[HotKey.Observe])
+			if (Input.GetMouseButtonDown(1))
 			{
-                PlayerStatusManager.SetInterStatus(InteractionStatus.ObservingObject);
-
-                ObservingObj = ObjectSorter.CHPointingObj;
-
-                StartObjectObservation();
+				objectMouseObservationHandler.EndInteraction();
 			}
-        }
-    }
-	private void CheckMouseObjObservation()
-	{
-		bool isPointingObservableObj = ObjectSorter.MouseHoveringObj.ObjType == ObjectType.ObservableObj;
-		if (isPointingObservableObj)
-		{
-			if (Input.GetMouseButtonDown(0))
+			else
+			if (HotKeyChecker.isKeyPressed[HotKey.Observe] || HotKeyChecker.isKeyPressed[HotKey.Escape])
 			{
-				PlayerStatusManager.SetInterStatus(InteractionStatus.ObservingObject);
+				if (!tutorialInfo.IsTutorialEnd)
+                    return;
 
-                ObservingObj = ObjectSorter.MouseHoveringObj;
-
-				PreprocessDeskObjObservation();
-				void PreprocessDeskObjObservation()
-				{
-					var playerCheckStatusControllers = ObservingObj.ObjTransform.GetComponentsInChildren<PlayerCheckStatus>();
-					if (ObservingObj.ObjTransform.GetComponentsInChildren<PlayerCheckStatus>() != null)
-						foreach (var playerCheckStatusController in playerCheckStatusControllers)
-							playerCheckStatusController.SetStatusChecked();
-					DisableEmissionOn(ObservingObj.ObjTransform);
-				}
-
-				StartObjectObservation();
+				objectMouseObservationHandler.EndInteraction();
+				placeCHObservationHandler.EndInteraction();
 			}
 		}
 	}
 
 
-	private void StartObjectObservation()
+    private void ManageObjectCHObservation()
     {
-        MoveObservingObj().Forget();
-	}
-
-    private async UniTaskVoid MoveObservingObj()
-	{
-        isLerpEventOn = true;
-
-        var observingObjInfo = ObservingObj.ObjInteractInfo.ObservableObjectInfo;
-
-		float zoomDistance = observingObjInfo.ZoomDistance;
-		Vector3 observePos = Camera.main.ScreenToWorldPoint(ScreenPositionGetter.GetScreenPosition(observingObjInfo.ScreenPosition, zoomDistance));
-
-        bool lerpSucceed = false;
-        if (observingObjInfo.IsFaceCamera)
-		{
-            var observeRot = Quaternion.LookRotation(-Camera.main.transform.forward, Camera.main.transform.up);
-			lerpSucceed = await ObjectLerper.LerpObjTransformAsync(ObservingObj.ObjTransform, observePos, observeRot, observeDuration, Space.World,
-                                                                    this.GetCancellationTokenOnDestroy());
-        }
-        else
-		{
-			lerpSucceed = await ObjectLerper.LerpObjTransformAsync(ObservingObj.ObjTransform, observePos, observeDuration, Space.World,
-												                    this.GetCancellationTokenOnDestroy());
-		}
-
-		if (lerpSucceed)
-			OnObservation(ObservingObj.ObjTransform, true); //TODO(1230): OnObservation Action도 IObjectInfo로 바꿔줄 것
-
-        isLerpEventOn = false;
-	}
-
-
-    private void RotateObjInObservation()
-    {
-        if (PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.ObservingObject)
-        {
-			if (ObservingObj.ObjInteractInfo.ObservableObjectInfo.IsRotatable) 
-                RotateObjOnDrag(ObservingObj.ObjTransform, rotSpeed);
-		}
-    }
-
-
-
-    /// <summary>  
-    /// Key check 됐을 때 동일한 프레임으로 들어가기 때문에, 먼저 체크하거나 이전에 return 안 하면 바로 변경됨 -> 주의  
-    /// </summary>
-    private void CheckEscapeForObservation()
-	{
-        if (PlayerStatusManager.GetPrevInterStatus() == InteractionStatus.None || PlayerStatusManager.GetPrevInterStatus() == InteractionStatus.Obtaining)
-        {
-            if (HotKeyChecker.isKeyPressed[HotKey.Observe] || HotKeyChecker.isKeyPressed[HotKey.Escape])
-            {
-                EndObservation().Forget();
-            }
-        }
-
+		if (objectCHObservationHandler.canStartInteraction && HotKeyChecker.isKeyPressed[HotKey.Observe])
+			objectCHObservationHandler.StartInteraction();
 
         else
-        if (PlayerStatusManager.GetPrevInterStatus() == InteractionStatus.Investigating)
-        {
-            if (Input.GetMouseButtonDown(1))
-            {
-                EndObservation().Forget();
-            }else
-            if (HotKeyChecker.isKeyPressed[HotKey.Observe] || HotKeyChecker.isKeyPressed[HotKey.Escape])
-            {
-                if (!tutorialInfo.IsTutorialEnd) return;
+		if (objectCHObservationHandler.canEscapeInteraction && (HotKeyChecker.isKeyPressed[HotKey.Observe] || HotKeyChecker.isKeyPressed[HotKey.Escape]))
+			objectCHObservationHandler.EndInteraction();
+	}
 
-                EndObservation().Forget();
-                EndPlaceObservation().Forget();
-            }
-        }
-
-    }
-
-
-
-    private async UniTaskVoid EndObservation()
-	{
-        OnObservation(ObservingObj.ObjTransform, false);
-
-        isLerpEventOn = true;
-		bool succeed = await ObjectLerper.LerpObjTransformAsync(ObservingObj.ObjTransform,
-										                        ObservingObj.ObjInteractInfo.ObservableObjectInfo.objLocalPos,
-										                        ObservingObj.ObjInteractInfo.ObservableObjectInfo.objRot,
-										                        observeDuration, Space.Self, this.GetCancellationTokenOnDestroy());
-        isLerpEventOn = false;
-
-        if(succeed)
-		    PostProcessObservation();
-    }
-
-    private void PostProcessObservation()
-    {
-        switch(PlayerStatusManager.GetPrevInterStatus())
-		{
-            case InteractionStatus.None:
-            case InteractionStatus.Obtaining:
-                PlayerStatusManager.SetInterStatus(InteractionStatus.None);
-
-                break;
-            case InteractionStatus.Investigating:
-                PlayerStatusManager.SetInterStatus(InteractionStatus.Investigating);
-
-                break;
-        }
-
-
-        if( ! tutorialInfo.IsTutorialEnd && TutorialInfo.OnDetectiveToolTutorialed != null)
-            TutorialInfo.OnDetectiveToolTutorialed(ObservingObj.ObjTransform); 
-
-        
-        ObservingObj = null;
-    }
-
-
+    
     #endregion
 
+
+    // 여기부터 수정하면 됨
     #region < Obtainable Object Interaction >
 
     [Header("Obtainment Property")]
@@ -522,7 +280,7 @@ public class ObjInteractor : MonoBehaviour
         }
         else
         if(PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.ObservingObject &&
-           !isLerpEventOn && ObservingObj.ObjTransform.childCount != 0)
+           !isLerpEventOn && objectCHObservationHandler.observableObject?.ObjTransform.childCount > 0)
 		{
             // TODO(1230): 더 다듬을 수 있을 것 같음. HiddenObj 클래스 제작하지 않고 리팩토링 방법 모색할 것
             ObtainableObj = GetHiddenObtObj();
@@ -549,7 +307,7 @@ public class ObjInteractor : MonoBehaviour
     private IObjectInfo GetHiddenObtObj()
     {
         hinddenObjInfo.Clear();
-        hinddenObjInfo.AddRange(ObservingObj.ObjTransform.GetComponentsInChildren<InteractiveEntityInfo>(false));
+        hinddenObjInfo.AddRange(objectCHObservationHandler.observableObject.ObjTransform.GetComponentsInChildren<InteractiveEntityInfo>(false));
 
         // 제일 아래에 있는 애가 숨겨진 오브젝트
         if (hinddenObjInfo.Count == 2)
@@ -617,7 +375,7 @@ public class ObjInteractor : MonoBehaviour
             if (isFurnitureInteractive && HotKeyChecker.isKeyPressed[HotKey.Interact])
             {
                 var interactiveFurniture = ObjectSorter.CHPointingObj.ObjTransform;
-                var interactiveFurnitureController = interactiveFurniture.GetComponent<InteractiveFurnitureController>();
+                var interactiveFurnitureController = interactiveFurniture.GetComponent<InteractiveFurnitureBase>();
 
                 interactiveFurnitureController.Interact();
             }
