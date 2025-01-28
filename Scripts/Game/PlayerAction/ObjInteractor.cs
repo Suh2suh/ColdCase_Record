@@ -17,9 +17,11 @@ public class ObjInteractor : MonoBehaviour
 
 	#endregion
 
+	// TODO: [250128] isLerpEventOn 필요성 고려 및 제거 시도할 것
 	#region Private Variables
-	private bool isLerpEventOn = false;
-    private CameraLerper plyaerCameraLerper;
+
+	//private bool isLerpEventOn = false;
+	private CameraLerper playerCameraLerper;
 
 	#endregion
 
@@ -27,13 +29,16 @@ public class ObjInteractor : MonoBehaviour
     /// Moving이 끝나고 'Object가 Camera 앞에 도착 / Camera 앞에서 사라지기 시작' 할 때마다 실행 -> Inspector On/Off 관리  
     /// </summary>
 	public static System.Action<Transform, bool> OnObservation;
+	public static IObjectInfo ObservingPlace;
+	public static IObjectInfo ObservingObject;
+	public static IObjectInfo ObtainingObject;
 
 
 	#region Unity Methods
 
 	private void Awake()
 	{
-        plyaerCameraLerper = new CameraLerper(Camera.main);
+        playerCameraLerper = new CameraLerper(Camera.main);
 
         Initialize(objectMouseObservationHandler);
         Initialize(objectCHObservationHandler);
@@ -44,19 +49,19 @@ public class ObjInteractor : MonoBehaviour
 
 	private void Start()
     {
-		isLerpEventOn = false;
+		//isLerpEventOn = false;
     }
 
 	private void Update()
     {
-        if(!isLerpEventOn)
-		{
+        //if(!isLerpEventOn)
+		//{
             ManageObjectObservation();
             ManagePlaceObservation();
-		}
+		//}
 
-        CheckObtainmentEvent();
-        CheckInteractionEvent();
+		ManageObjectObtainment();
+		ManageFurnitureInteraction();
 
         //Debug.Log(isMovingCoroutineOn + " / " + PlayerStatusManager.GetCurrentInterStatus() + " / " + ObjectSorter.CHPointingObj.objType + " / " + HotKeyChecker.isKeyPressed[HotKey.Observe]);
     }
@@ -78,19 +83,26 @@ public class ObjInteractor : MonoBehaviour
 					(observationHandler as ObjectMouseObservationHandler).tutorialInfo = tutorialInfo;
 
 				break;
-            case PlaceMouseObservationHandler:
-                (interactionHandler as PlaceMouseObservationHandler).Initialize(plyaerCameraLerper, tutorialInfo, this.GetCancellationTokenOnDestroy());
 
+
+            case PlaceMouseObservationHandler:
+                (interactionHandler as PlaceMouseObservationHandler).Initialize(playerCameraLerper, tutorialInfo, this.GetCancellationTokenOnDestroy());
                 break;
             case PlaceCHObservationHandler:
-				(interactionHandler as PlaceCHObservationHandler).Initialize(plyaerCameraLerper, this.GetCancellationTokenOnDestroy());
+				(interactionHandler as PlaceCHObservationHandler).Initialize(playerCameraLerper, this.GetCancellationTokenOnDestroy());
 
                 break;
+
+
+			case ObjectObtainmentHandlerBase:
+				(interactionHandler as ObjectObtainmentHandlerBase).Initialize(obtainingDuration, materialEffectController, this.GetCancellationTokenOnDestroy());
+
+				break;
 		}
 	}
 
 
-	#endregion
+    #endregion
 
 
 	#region < Observable Place Interaction > 
@@ -150,6 +162,7 @@ public class ObjInteractor : MonoBehaviour
 
 	#endregion
 
+	
 	#region < Observable Object Interaction > 
 
 	[Header("Observation Property")]
@@ -207,170 +220,101 @@ public class ObjInteractor : MonoBehaviour
 			objectCHObservationHandler.EndInteraction();
 	}
 
-    
+
     #endregion
 
 
-    // 여기부터 수정하면 됨
-    #region < Obtainable Object Interaction >
+	// TODO : [250128] Deprecated - IconController 관리 필요
+	#region < Obtainable Object Interaction >
 
-    [Header("Obtainment Property")]
+	[Header("Obtainment Property")]
 
     [Tooltip("Object 획득 시, 얼마나 느리게 획득할지 설정: 높을수록 느림 ")]
     [SerializeField] private float obtainingDuration = 3.0f;
+	
 
-    /// <summary>
-    /// True: 관찰 오브젝트 아래의 히든 혈흔이 화면에 보일 때, 카메라가 혈흔 가리키고 있을 때
-    /// </summary>
-    private bool isObtainableObjDetected = false;
-    private IObjectInfo ObtainableObj;
+	private FieldObjectObtainmentHandler fieldObjectObtainmentHandler = new();
+	private HiddenObjectObtainmentHandler hiddenObjectObtainmentHandler = new();
 
 
-    // isObtainableObjDetected -> None인 상태, Observe인 상태
-    private void CheckObtainmentEvent()
-    {
-        var isOnObtaiableStatus = (PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.None ||
-                                   PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.ObservingObject ||
-                                   PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.ObservingPlace);
-        if (isOnObtaiableStatus)
-        {
-            DetectObtainableObj();
-
-            if (isObtainableObjDetected)
-            {
-                if (PlayerStatusManager.GetCurrentInterStatus() != InteractionStatus.None)
-                    iconController.DisplayIconOnObj(iconController.FIconObj, ObtainableObj.ObjTransform);
-
-                bool isObtainablePhase = PhaseChecker.GetCurrentPhase() >= 'B';
-                if ( ! isObtainablePhase || ! ObtainableObj.ObjInteractInfo.IsInteractive)
-                    return;
-
-
-                if (HotKeyChecker.isKeyPressed[HotKey.Obtain])
-                {
-                    PlayerStatusManager.SetInterStatus(InteractionStatus.Obtaining);
-
-                    StartObtainment();
-                }
-            }
-            else
-            {
-                iconController.ActivateIcon(iconController.FIconObj, false);
-            }
-        }
-
-    }
-
-    private void DetectObtainableObj()
-    {
-        if (PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.None || 
-            PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.ObservingPlace)
-        {
-            var pointingObj = (PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.None ? ObjectSorter.CHPointingObj : ObjectSorter.MouseHoveringObj);
-            if (pointingObj.ObjType == ObjectType.ObtainableObj)
-            {
-                ObtainableObj = pointingObj;
-
-                isObtainableObjDetected = true;
-            }
-            else
-			{
-                isObtainableObjDetected = false;
-            }
-        }
-        else
-        if(PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.ObservingObject &&
-           !isLerpEventOn && objectCHObservationHandler.observableObject?.ObjTransform.childCount > 0)
-		{
-            // TODO(1230): 더 다듬을 수 있을 것 같음. HiddenObj 클래스 제작하지 않고 리팩토링 방법 모색할 것
-            ObtainableObj = GetHiddenObtObj();
-
-            if (ObtainableObj != null)
-                isObtainableObjDetected = CameraViewportObjectChecker.CheckObjSeenOnCamera(ObtainableObj.ObjTransform);
-        }
-        else
-        {
-            isObtainableObjDetected = false;
-        }
-    }
-
-
-	private class HiddenObj : IObjectInfo
+	private void ManageObjectObtainment()
 	{
-        public ObjectType ObjType { get => ObjectType.ObtainableObj; }
-		public Transform ObjTransform { get; set; }
-		public InteractiveEntityInfo ObjInteractInfo { get; set; }
-	}
-	private HiddenObj hiddenObj;
-
-	private readonly List<InteractiveEntityInfo> hinddenObjInfo = new();
-    private IObjectInfo GetHiddenObtObj()
-    {
-        hinddenObjInfo.Clear();
-        hinddenObjInfo.AddRange(objectCHObservationHandler.observableObject.ObjTransform.GetComponentsInChildren<InteractiveEntityInfo>(false));
-
-        // 제일 아래에 있는 애가 숨겨진 오브젝트
-        if (hinddenObjInfo.Count == 2)
-        {
-            InteractiveEntityInfo hiddenObjInfo = hinddenObjInfo[1];
-            if (hiddenObjInfo && hiddenObjInfo.ObjectType == ObjectType.ObtainableObj)
-            {
-                hiddenObj.ObjInteractInfo = hiddenObjInfo;
-				hiddenObj.ObjTransform = hiddenObjInfo.transform;
-
-				return hiddenObj;
+		// TODO: [250128] 맥락적으로 고치는 것 고려 (interactor의 start조건이 같다는 것 명시할 필요 O)
+		if (fieldObjectObtainmentHandler.canStartInteraction && HotKeyChecker.isKeyPressed[HotKey.Obtain])
+		{
+			if (fieldObjectObtainmentHandler.IsObtainableStatus)
+			{
+				fieldObjectObtainmentHandler.StartInteraction();
 			}
-        }
+			else
+			if (hiddenObjectObtainmentHandler.IsObtainableStatus)
+			{
+				hiddenObjectObtainmentHandler.StartInteraction(() => iconController.ActivateIcon(iconController.FIconObj, false));
+			}
+		}
+	}
 
-        return null;
-    }
+
+		#region Deprecated
+	/*
+	private void CheckObtainmentEvent()
+	{
+		var isOnObtaiableStatus = (PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.None ||
+								   PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.ObservingObject ||
+								   PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.ObservingPlace);
+		if (isOnObtaiableStatus)
+		{
+			DetectObtainableObj();
+
+			if (isObtainableObjDetected)
+			{
+				// TODO: [250128] HiddenObjectObtainmentHandler에서 detect정보 불러올 것
+				//if (PlayerStatusManager.GetCurrentInterStatus() != InteractionStatus.None)
+					iconController.DisplayIconOnObj(iconController.FIconObj, ObtainableObj.ObjTransform);
 
 
+				if (HotKeyChecker.isKeyPressed[HotKey.Obtain])
+				{
+					PlayerStatusManager.SetInterStatus(InteractionStatus.Obtaining);
+
+					StartObtainment();
+				}
+			}
+			else
+			{
+				// TODO: [250128] HiddenObjectObtainmentHandler에서 detect정보 불러올 것
+				//iconController.ActivateIcon(iconController.FIconObj, false);
+			}
+		}
+
+	}
+	*/
+	/*
 	private void StartObtainment()
 	{
-        iconController.ActivateIcon(iconController.FIconObj, false);
-        StartCoroutine(ProcessObtainment());
-    }
+		// TODO: [250128] HiddenObj.ExtraPreprocess에 삽입할 것
+		iconController.ActivateIcon(iconController.FIconObj, false);
+		StartCoroutine(ProcessObtainment());
+	}
+	*/
 
 
-    private IEnumerator ProcessObtainment()
-    {
-        var obtainableObjectInfo = ObtainableObj.ObjInteractInfo.ObtainableObjectInfo;
-		var effectType = obtainableObjectInfo.EffectType;
-        var effectDirection = obtainableObjectInfo.PhaseDirection;
 
-        yield return StartCoroutine(materialEffectController.ApplyMaterialEffect(ObtainableObj.ObjTransform, effectType, effectDirection, obtainingDuration));
-
-        PostProcessObtainment();
-    }
-
-	private void PostProcessObtainment()
-    {
-        // 1. 인벤토리 삽입
-        var item = ObtainableObj.ObjInteractInfo.ObtainableObjectInfo.EvidenceType;
-        if (item)  item.SetIsObtained(true);
-
-        // 2. 오브젝트 제거
-        if(ObtainableObj.ObjTransform.gameObject.activeSelf)
-            ObtainableObj.ObjTransform.gameObject.SetActive(false);
-        ObtainableObj = null;
-        isObtainableObjDetected = false;
-
-        PlayerStatusManager.SetInterStatus(PlayerStatusManager.GetPrevInterStatus());
-    }
+	#endregion
 
 	#endregion
 
 
+	//여기부터 고치면됨
 	#region < Interactive Furniture Interaction >
 
 	// Check~Event()
 	// Start~
-	private void CheckInteractionEvent()
+	private void ManageFurnitureInteraction()
 	{
         if(PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.None)
 		{
-            var isFurnitureInteractive = (ObjectSorter.CHPointingObj.ObjType == ObjectType.InteractiveFurniture);
+            bool isFurnitureInteractive = (ObjectSorter.CHPointingObj.ObjType == ObjectType.InteractiveFurniture);
 
             if (isFurnitureInteractive && HotKeyChecker.isKeyPressed[HotKey.Interact])
             {

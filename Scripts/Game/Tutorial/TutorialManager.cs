@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
+using Cysharp.Threading.Tasks;
 
 
 // Attatchable to Any object
@@ -282,9 +283,12 @@ public class TutorialManager : MonoBehaviour
 	[SerializeField] MaterialEffectManager materialEffectManager;
 	[SerializeField] float destroyingDuration = 3.0f;
 
+	// TODO: [250128] Unitaskº¯°æ
 	IEnumerator DestroyObjectWithDissolve(Transform destoryingObj)
 	{
-		yield return StartCoroutine(materialEffectManager.ApplyMaterialEffect(destoryingObj, ShaderGraphEffectType.Dissolve, ShaderGraphEffectDirection.None, destroyingDuration));
+		yield return StartCoroutine(materialEffectManager.ApplyMaterialEffectAsync(destoryingObj, ShaderGraphEffectType.Dissolve, 
+																			       ShaderGraphEffectDirection.None, destroyingDuration,
+																				   this.GetCancellationTokenOnDestroy()).ToCoroutine());
 
 		destoryingObj.gameObject.SetActive(false);
 	}

@@ -1,4 +1,6 @@
+using Cysharp.Threading.Tasks;
 using System.Collections;
+using System.Threading;
 using UnityEngine;
 
 
@@ -10,9 +12,9 @@ public class MaterialEffectManager : ScriptableObject
     [SerializeField] Material PhaseMaterial;
 
 
-	public IEnumerator ApplyMaterialEffect(Transform targetObject, 
-                                                        ShaderGraphEffectType effectType, ShaderGraphEffectDirection shaderGraphEffectDirection = ShaderGraphEffectDirection.None,
-                                                         float effectDuration = 3.0f)
+	public async UniTask ApplyMaterialEffectAsync(Transform targetObject, 
+                                                      ShaderGraphEffectType effectType, ShaderGraphEffectDirection shaderGraphEffectDirection = ShaderGraphEffectDirection.None,
+                                                      float effectDuration = 3.0f, CancellationToken cancellationToken = default)
     {
         // Preparation for obtain effect
         #region Obtain Effect Preparation (Shader Graph)
@@ -43,7 +45,7 @@ public class MaterialEffectManager : ScriptableObject
             var splitValue = Mathf.Lerp(minSplit, maxSplit, time / effectDuration);
             obtObjRenderer.material.SetFloat("_Split_Value", splitValue);
 
-            yield return null;
+            await UniTask.Yield(cancellationToken);
         }
         obtObjRenderer.material.SetFloat("_Split_Value", maxSplit);
     }
