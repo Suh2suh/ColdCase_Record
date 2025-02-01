@@ -74,5 +74,5 @@ crashlytics-build.properties
 # Temporary auto-generated Android Assets
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
-Scripts/Syquence/CameraChange.cs
-Scripts/Syquence/Scenechange.cs
+Scripts/Director
+Scripts/Media/SoundControllers/Echo_Controller.cs

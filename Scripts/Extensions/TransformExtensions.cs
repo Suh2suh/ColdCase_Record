@@ -32,4 +32,23 @@ public static class TransformExtensions
 	}
 
 
+	
+
+	// TODO: [250201] 더 모듈화
+	public static void RotateOnDrag(this Transform transform, float rotSpeed)
+	{
+		if (Input.GetMouseButton(0))
+		{
+			float rotX = Input.GetAxis("Mouse X") * rotSpeed;
+			float rotY = Input.GetAxis("Mouse Y") * rotSpeed;
+
+			Vector3 horizontalVec = -Camera.main.transform.up;
+			Vector3 verticalVec = Camera.main.transform.right;
+
+			transform.Rotate(horizontalVec, rotX, Space.World);
+			transform.Rotate(verticalVec, rotY, Space.World);
+		}
+	}
+
+
 }

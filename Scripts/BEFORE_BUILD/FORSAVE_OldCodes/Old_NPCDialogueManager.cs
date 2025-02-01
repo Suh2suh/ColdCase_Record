@@ -116,7 +116,7 @@ public class NPCDialogueManager : MonoBehaviour
         }
         else
 		{
-            if(PlayerStatusManager.GetCurrentInterStatus() == InteractionStatus.Talking)
+            if(PlayerStatusManager.CurrentInterStatus == InteractionStatus.Talking)
 			{
                 EndDialogue();
             }
