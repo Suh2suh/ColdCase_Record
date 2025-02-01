@@ -24,10 +24,6 @@
   The folder that contains only imported packages or plugins, literally. Added for reason to avoid error or warning while navigating "Scripts" folder.
 
 - <b>Scripts (Main)</b>: The folder that contains codes written by me only.
-  - <b>BEFORE_BUILD</b>: Scripts for test / save old codes
-  - <b>Common</b>: Non-game scripts(ETC Dialogue, Manager, MediaController, ETC UI...)
-  - <b>Editor</b>: Scripts for custom-editor
-  - <b>Game</b>: Game scripts that are used in main game function(Player, Camera, Game UI...)
-  - <b>ScriptableObjClasses</b>: Classes that inherit scriptableObject
+  - <b>~</b>: ~ this will be updated, since folder structure is re-organized today [250201]
   
 
