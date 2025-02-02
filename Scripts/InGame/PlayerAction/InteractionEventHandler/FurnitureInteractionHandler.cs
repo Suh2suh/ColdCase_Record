@@ -38,7 +38,7 @@ public class FurnitureInteractionHandler : InteractionHandlerBase
 	}
 	protected override void PostProcess(Action extraPostProcess)
 	{
-		throw new NotImplementedException();
+		//throw new NotImplementedException();
 	}
 
 

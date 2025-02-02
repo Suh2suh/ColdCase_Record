@@ -20,9 +20,6 @@ public class ObjInteractor : MonoBehaviour
 	/// Moving이 끝나고 'Object가 Camera 앞에 도착 / Camera 앞에서 사라지기 시작' 할 때마다 실행 -> Inspector On/Off 관리  
 	/// </summary>
 	public static System.Action<Transform, bool> OnObservation;
-	public static IObjectInfo ObservingPlace;
-	public static IObjectInfo ObservingObject;
-	public static IObjectInfo ObtainingObject;
 
 
 	#region Unity Methods
@@ -33,29 +30,24 @@ public class ObjInteractor : MonoBehaviour
 
         Initialize(objectMouseObservationHandler);
         Initialize(objectCHObservationHandler);
+
         Initialize(placeMouseObservationHandler);
         Initialize(placeCHObservationHandler);
 
+		Initialize(fieldObjectObtainmentHandler);
+		Initialize(hiddenObjectObtainmentHandler);
 	}
 
-	private void Start()
-    {
-		//isLerpEventOn = false;
-    }
 
 	private void Update()
     {
-        //if(!isLerpEventOn)
-		//{
-            ManageObjectObservation();
-            ManagePlaceObservation();
-		//}
+        ManageObjectObservation();
+        ManagePlaceObservation();
 
 		ManageObjectObtainment();
-		ManageFurnitureInteraction();
 
-        //Debug.Log(isMovingCoroutineOn + " / " + PlayerStatusManager.CurrentInterStatus + " / " + ObjectSorter.CHPointingObj.objType + " / " + HotKeyChecker.isKeyPressed[HotKey.Observe]);
-    }
+		ManageFurnitureInteraction();
+	}
 
 
 	#endregion

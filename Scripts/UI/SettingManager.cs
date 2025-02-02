@@ -1,10 +1,8 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Newtonsoft.Json;
 using UnityEngine.Rendering.HighDefinition;
 using System;
-using UnityEngine.SceneManagement;
 
 
 public class SettingManager : MonoBehaviour
@@ -51,17 +49,22 @@ public class SettingManager : MonoBehaviour
         if (sceneInfo.CurrentSceneType == SceneType.Lobby)
         {
             foreach (GameObject child in childs)
-                if (!child.activeSelf)   child.SetActive(true);
+            {
+				if (!child.activeSelf)
+					child.SetActive(true);
+			}
         }
         else
 		{
             foreach (GameObject child in childs)
-                if (child.activeSelf) child.SetActive(false);
+            {
+				if (child.activeSelf)
+					child.SetActive(false);
+			}
 
             if (sceneInfo.CurrentSceneType == SceneType.Game)
             {
                 GameObject Player = GameObject.Find("Player");
-                playerControlLimiter = Player.GetComponentInChildren<InteractionLimitController>();
                 playerCanvas = Player.GetComponentInChildren<Canvas>().gameObject;
 
                 //isGamePaused = false;
@@ -69,7 +72,8 @@ public class SettingManager : MonoBehaviour
         }
 		#endregion
 
-		if (!this.gameObject.activeSelf) this.gameObject.SetActive(true);
+		if (!gameObject.activeSelf)
+                gameObject.SetActive(true);
 
 
         #region Setting Methods - Audio & Languages
@@ -162,7 +166,7 @@ public class SettingManager : MonoBehaviour
             ExecuteSetting(itemKey, prevSettingDic[itemKey]);
         }
 
-        Debug.Log("Setting Data Exists");
+        //Debug.Log("Setting Data Exists");
     }
 
 	/// <summary>
@@ -203,7 +207,7 @@ public class SettingManager : MonoBehaviour
         }
         else
         {
-            print("NO METHOD TO ADJUST: " + settingKey);
+            //print("NO METHOD TO ADJUST: " + settingKey);
         }
     }
 
@@ -377,20 +381,20 @@ public class SettingManager : MonoBehaviour
 	#endregion
 
 
-	#region Manage Setting Panel Activation
+	#region In GameScene
 
-	private InteractionLimitController playerControlLimiter;
     private GameObject playerCanvas;
-
     private List<GameObject> childs = new();
 
 
-	/// <summary> Game Scene 상태에서만 작동, 세팅 패널 ON/OFF </summary>
+	/// <summary> 
+    /// Game Scene 상태에서만 작동, 세팅 패널 ON/OFF 
+    /// </summary>
 	private void ManageInGameSettingPanel()
 	{
         if (Input.GetKeyDown(KeyCode.Escape))
         {
-            if (GameModeManager.GetCurrentGameMode() == GameMode.InGame
+            if (GameModeManager.CurrentGameMode == GameMode.InGame
           && PlayerStatusManager.CurrentInterStatus == InteractionStatus.None)
             {
                 GameModeManager.SetGameMode(GameMode.OutGame);
@@ -398,7 +402,7 @@ public class SettingManager : MonoBehaviour
                 EnableSetting();
             }
             else
-            if (GameModeManager.GetCurrentGameMode() == GameMode.OutGame)
+            if (GameModeManager.CurrentGameMode == GameMode.OutGame)
             {
                 // if(PreviousPanel == Setting)
                 DisableSetting();
@@ -413,26 +417,25 @@ public class SettingManager : MonoBehaviour
         }
     }
 
-    private void EnableSetting()
+
+	private void EnableSetting()
 	{
-        //if (sceneInfo.GetCurrentSceneInfo() == SceneType.Game)
-          //  PlayerStatusManager.SetInterStatus(InteractionStatus.Setting);
+		foreach (var child in childs)
+			child.SetActive(true);
 
-        foreach (var child in childs) child.SetActive(true);
-
-        playerCanvas.SetActive(false);
-    }
-    private void DisableSetting()
+		playerCanvas.SetActive(false);
+	}
+	private void DisableSetting()
 	{
-        //if (sceneInfo.GetCurrentSceneInfo() == SceneType.Game)
-          //  PlayerStatusManager.SetInterStatus(InteractionStatus.None);
+		foreach (var child in childs)
+			child.SetActive(false);
 
-        foreach (var child in childs) child.SetActive(false);
-
-        playerCanvas.SetActive(true);
-    }
+		playerCanvas.SetActive(true);
+	}
 
 
 	#endregion
+
+
 
 }

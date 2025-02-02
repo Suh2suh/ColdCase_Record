@@ -102,7 +102,7 @@ public class NpcDialogueManager : MonoBehaviour
 	private void FixedUpdate()
 	{
 		if (PlayerStatusManager.CurrentInterStatus == InteractionStatus.TalkingNpc &&
-			GameModeManager.GetCurrentGameMode() == GameMode.InGame)
+			GameModeManager.CurrentGameMode == GameMode.InGame)
 		{
 			if(isBookChapterNavigatable) bookChapterNavigator.CheckPointingIndexerOnFixedUpdate();
 		}
@@ -111,7 +111,7 @@ public class NpcDialogueManager : MonoBehaviour
 	private void Update()
 	{
 		if (PlayerStatusManager.CurrentInterStatus == InteractionStatus.TalkingNpc &&
-			GameModeManager.GetCurrentGameMode() == GameMode.InGame)
+			GameModeManager.CurrentGameMode == GameMode.InGame)
 		{
 
 			if (isCommunicable && Input.GetMouseButtonDown(0))

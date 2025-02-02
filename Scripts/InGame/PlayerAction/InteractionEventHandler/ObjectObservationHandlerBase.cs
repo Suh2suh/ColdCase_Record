@@ -5,7 +5,7 @@ using UnityEngine;
 
 public abstract class ObjectObservationHandlerBase : InteractionHandlerBase
 {
-	public IObjectInfo observableObject;
+	protected ObjectInfo observableObject = new();
 
 	public float observeDuration;
 	public float rotSpeed;

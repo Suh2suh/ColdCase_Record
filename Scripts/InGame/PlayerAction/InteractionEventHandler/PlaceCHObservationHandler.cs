@@ -7,7 +7,7 @@ using UnityEngine;
 public class PlaceCHObservationHandler : InteractionHandlerBase
 {
 
-	private IObjectInfo observablePlace;
+	private ObjectInfo observablePlace = new();
 
 	// TODO: [250127] 마찬가지, 플레이어 카메라 LERPER 싱글톤 하든지 뺄 방법 강구
 	private CameraLerper playerCameraLerper;
@@ -37,7 +37,7 @@ public class PlaceCHObservationHandler : InteractionHandlerBase
 								 InteractionStatus.ObservingPlace : InteractionStatus.Investigating);
 		PlayerStatusManager.SetInterStatus(interactionStatus);
 
-		observablePlace = ObjectSorter.CHPointingObj;
+		observablePlace.Set(ObjectSorter.CHPointingObj);
 
 		return UniTask.FromResult(true);
 	}
@@ -68,7 +68,7 @@ public class PlaceCHObservationHandler : InteractionHandlerBase
 
 	protected override void PostProcess(Action extraPostProcess)
 	{
-		observablePlace = null;
+		observablePlace.Set(null);
 		PlayerStatusManager.SetInterStatus(InteractionStatus.None);
 	}
 

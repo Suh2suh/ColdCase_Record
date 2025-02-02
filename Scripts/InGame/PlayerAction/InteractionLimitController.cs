@@ -22,7 +22,8 @@ public class InteractionLimitController : MonoBehaviour
 
 
 		// TODO: Move to Game Initializer
-		GameModeManager.CurrentGameMode = GameMode.InGame;
+		//GameModeManager.CurrentGameMode = GameMode.InGame;
+		GameModeManager.SetGameMode(GameMode.InGame);
 	}
 
 	private void Start()
@@ -73,7 +74,7 @@ public class InteractionLimitController : MonoBehaviour
 
 	void OnInteractionStatusUpdated()
 	{
-		if (GameModeManager.GetCurrentGameMode() != GameMode.InGame)
+		if (GameModeManager.CurrentGameMode != GameMode.InGame)
 			return;
 
 		ManagePlayerInteraction();

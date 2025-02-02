@@ -124,7 +124,7 @@ public class WalkieTalkieDialogueManager : MonoBehaviour
 	{
 		isCommunicable = false;
 
-		Debug.Log(narrationSubtitlePlayer);
+		//Debug.Log(narrationSubtitlePlayer);
 
 		narrationSubtitlePlayer.ActivateNarrationPanel(false);
 		decisionEventController.DestroyDecisionPanel();

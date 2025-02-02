@@ -57,7 +57,7 @@ public class IconController : Singleton<IconController>
 
     private void Update()
     {
-        if(GameModeManager.GetCurrentGameMode() == GameMode.InGame)
+        if(GameModeManager.CurrentGameMode == GameMode.InGame)
 		{
             if (photoIconObj.activeSelf)
                 DisplayIconOnObj(photoIconObj, ObjectSorter.CHPointingObj.ObjTransform);

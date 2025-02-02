@@ -85,7 +85,7 @@ public class NarrationSubtitlePlayer : MonoBehaviour
 
 	public void ActivateNarrationPanel(bool activeStatus)
 	{
-		Debug.Log(narrativeDialoguePanel);
+		//Debug.Log(narrativeDialoguePanel);
 		if (narrativeDialoguePanel.activeSelf != activeStatus)  narrativeDialoguePanel.SetActive(activeStatus);
 	}
 

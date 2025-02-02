@@ -1,8 +1,6 @@
 ﻿using Cysharp.Threading.Tasks;
 using System;
-using System.Collections;
 using System.Threading;
-using UnityEngine;
 
 
 public class ObjectCHObservationHandler : ObjectObservationHandlerBase
@@ -29,7 +27,7 @@ public class ObjectCHObservationHandler : ObjectObservationHandlerBase
 	{
 		PlayerStatusManager.SetInterStatus(InteractionStatus.ObservingObject);
 
-		observableObject = ObjectSorter.CHPointingObj;
+		observableObject.Set(ObjectSorter.CHPointingObj);
 
 		return UniTask.FromResult(true);
 	}
@@ -41,7 +39,7 @@ public class ObjectCHObservationHandler : ObjectObservationHandlerBase
 
 		extraPostProcess?.Invoke();
 
-		observableObject = null;
+		observableObject.Set(null);
 	}
 
 

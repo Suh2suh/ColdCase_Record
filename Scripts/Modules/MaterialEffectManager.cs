@@ -44,6 +44,8 @@ public class MaterialEffectManager : ScriptableObject
             var splitValue = Mathf.Lerp(minSplit, maxSplit, time / effectDuration);
             obtObjRenderer.material.SetFloat("_Split_Value", splitValue);
 
+            //Debug.Log(time + " / " + effectDuration);
+
             await UniTask.Yield(cancellationToken);
         }
         obtObjRenderer.material.SetFloat("_Split_Value", maxSplit);

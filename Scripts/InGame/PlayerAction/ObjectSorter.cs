@@ -28,7 +28,7 @@ public class ObjectSorter : MonoBehaviour
 	#region Private Static Variables
 	/// <summary> Object Sort / Ray 활성화 여부 </summary>
 	private static bool isSortRayNeeded = true;
-    private static ObjectInfo CHpointingObj;
+    private static ObjectInfo chPointingObj;
 
     /// <summary>  Mouse Click Ray 활성화 여부  </summary>
     private static bool isMouseRayNeeded;
@@ -36,7 +36,7 @@ public class ObjectSorter : MonoBehaviour
     
 	#endregion
 
-	public static IObjectInfo CHPointingObj { get => CHpointingObj; }
+	public static IObjectInfo CHPointingObj { get => chPointingObj; }
 	public static IObjectInfo MouseHoveringObj { get => mouseHoveringObj; }
 
 	public static System.Action<IObjectInfo> OnCHPointingObjChanged;
@@ -47,7 +47,7 @@ public class ObjectSorter : MonoBehaviour
     private void Awake()
 	{
         isSortRayNeeded = true;
-        CHpointingObj = new();
+        chPointingObj = new();
 
         isMouseRayNeeded = false;
         mouseHoveringObj = new();
@@ -206,14 +206,14 @@ public class ObjectSorter : MonoBehaviour
         {
             if (CHPointingObj.ObjTransform != CHHitObj)
             {
-                CHpointingObj.ObjTransform = CHHitObj;
-				CHpointingObj.ObjType = (CHHitObj.transform.TryGetComponent<InteractiveEntityInfo>(out var objectInfo) ? objectInfo.ObjectType : ObjectType.None);
-				CHpointingObj.ObjInteractInfo = objectInfo;
+                chPointingObj.ObjTransform = CHHitObj;
+				chPointingObj.ObjType = (CHHitObj.transform.TryGetComponent<InteractiveEntityInfo>(out var objectInfo) ? objectInfo.ObjectType : ObjectType.None);
+				chPointingObj.ObjInteractInfo = objectInfo;
 
 				if(CHPointingObj.ObjType == ObjectType.None)
-                    Debug.LogWarning("No script found: InteractiveEntityInfo.cs! Please put script on " + CHpointingObj.ObjTransform.name);
+                    Debug.LogWarning("No script found: InteractiveEntityInfo.cs! Please put script on " + chPointingObj.ObjTransform.name);
 
-				OnCHPointingObjChanged(CHpointingObj);
+				OnCHPointingObjChanged(chPointingObj);
             }
 
         }
@@ -221,11 +221,11 @@ public class ObjectSorter : MonoBehaviour
         {
             if (CHPointingObj.ObjTransform != null || CHPointingObj.ObjType != ObjectType.None)
             {
-                CHpointingObj.ObjTransform = null;
-                CHpointingObj.ObjType = ObjectType.None;
-				CHpointingObj.ObjInteractInfo = null;
+                chPointingObj.ObjTransform = null;
+                chPointingObj.ObjType = ObjectType.None;
+				chPointingObj.ObjInteractInfo = null;
 
-				OnCHPointingObjChanged(CHpointingObj);
+				OnCHPointingObjChanged(chPointingObj);
             }
         }
 

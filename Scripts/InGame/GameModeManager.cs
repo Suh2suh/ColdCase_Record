@@ -1,4 +1,3 @@
-using UnityEngine;
 
 
 public static class GameModeManager
@@ -7,15 +6,10 @@ public static class GameModeManager
     public static System.Action<GameMode> OnGameModeUpdated;
 
     private static GameMode currentGameMode = GameMode.InGame;
-    public static GameMode CurrentGameMode { get => currentGameMode; set => currentGameMode = value; }
+    public static GameMode CurrentGameMode => currentGameMode;
 
 
-	public static GameMode GetCurrentGameMode()
-	{
-        return currentGameMode;
-	}
-
-    public static void SetGameMode(GameMode newGameMode)
+	public static void SetGameMode(GameMode newGameMode)
     {
         // Debug.Log(currentGameMode + " ? " + newGameMode);
         if (currentGameMode != newGameMode)

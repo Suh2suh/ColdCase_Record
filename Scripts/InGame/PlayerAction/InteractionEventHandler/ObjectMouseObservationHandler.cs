@@ -1,6 +1,5 @@
 ﻿using Cysharp.Threading.Tasks;
 using System;
-using System.Collections;
 using System.Threading;
 using UnityEngine;
 
@@ -33,7 +32,7 @@ public class ObjectMouseObservationHandler : ObjectObservationHandlerBase
 	{
 		PlayerStatusManager.SetInterStatus(InteractionStatus.ObservingObject);
 
-		observableObject = ObjectSorter.MouseHoveringObj;
+		observableObject.Set(ObjectSorter.MouseHoveringObj);
 
 		var playerCheckStatusControllers = observableObject.ObjTransform.GetComponentsInChildren<PlayerCheckStatus>();
 		if (observableObject.ObjTransform.GetComponentsInChildren<PlayerCheckStatus>() != null)
@@ -60,7 +59,7 @@ public class ObjectMouseObservationHandler : ObjectObservationHandlerBase
 				mouseHoverEmitter.SetBlinkCondition(EmitOnMouseHover.BlinkCondition.Never);
 		}
 
-		observableObject = null;
+		observableObject.Set(null);
 	}
 
 

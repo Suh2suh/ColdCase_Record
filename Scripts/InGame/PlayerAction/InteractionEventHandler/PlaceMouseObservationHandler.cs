@@ -6,7 +6,7 @@ using UnityEngine;
 
 public class PlaceMouseObservationHandler : InteractionHandlerBase
 {
-	private IObjectInfo observablePlace;
+	private ObjectInfo observablePlace = new();
 
 	// TODO: [250127] playerCameraLerper은 하나뿐이므로, singleton으로 하나 만들든지 할것
 	//                마찬가지로 tutorialInfo 뺄 방법 강구
@@ -50,7 +50,7 @@ public class PlaceMouseObservationHandler : InteractionHandlerBase
 			default:
 				return UniTask.FromResult(false);
 		}
-		observablePlace = ObjectSorter.MouseHoveringObj;
+		observablePlace.Set(ObjectSorter.MouseHoveringObj);
 
 		DisableEmissionOn(observablePlace.ObjTransform);
 		if (observablePlace.ObjTransform.TryGetComponent<PlayerCheckStatus>(out var playerCheckStatusController))
@@ -67,8 +67,11 @@ public class PlaceMouseObservationHandler : InteractionHandlerBase
 		var mouseObservePos = observablePlace.ObjInteractInfo.ObservablePlaceInfo.ObservingPos;
 		float observeDuration = observablePlace.ObjInteractInfo.ObservablePlaceInfo.PlaceObserveDuration;
 
+		Debug.Log("Start1: " + observablePlace.ObjTransform.name);
 		bool succeed = await playerCameraLerper.MoveToNewTransform(mouseObservePos.position, mouseObservePos.rotation, observeDuration,
 																   cancellationToken);
+		Debug.Log(succeed);
+		Debug.Log("Start2: " + observablePlace.ObjTransform.name);
 
 		if (succeed)
 		{
@@ -92,14 +95,13 @@ public class PlaceMouseObservationHandler : InteractionHandlerBase
 
 	protected override void PostProcess(Action extraPostProcess)
 	{
-		//TODO: [250124] BUGFIX
 		if (observablePlace.ObjTransform.TryGetComponent<DetectiveToolInfo>(out var detectiveTool))
 		{
 			if (!tutorialInfo.IsTutorialEnd)
 				TutorialInfo.OnDetectiveToolTutorialed(detectiveTool.transform);
 		}
 
-		observablePlace = null;
+		observablePlace.Set(null);
 		PlayerStatusManager.SetInterStatus(InteractionStatus.Investigating);
 	}
 

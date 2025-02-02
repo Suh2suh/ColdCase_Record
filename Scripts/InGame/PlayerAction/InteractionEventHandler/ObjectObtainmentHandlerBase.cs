@@ -1,13 +1,17 @@
 ﻿using Cysharp.Threading.Tasks;
 using System;
 using System.Threading;
+using UnityEngine;
 
 
 public abstract class ObjectObtainmentHandlerBase : InteractionHandlerBase
 {
 
-	protected static IObjectInfo obtainableObject;
-	protected static bool isObtainableObjDetected;
+	protected static ObjectInfo obtainableObject = new();
+	private static bool IsObtainableObjectDetected
+	{
+		get => (obtainableObject.ObjTransform != null);
+	}
 
 	private float obtainDuration;
 	private MaterialEffectManager materialEffectController;
@@ -29,18 +33,11 @@ public abstract class ObjectObtainmentHandlerBase : InteractionHandlerBase
 	{
 		while(true)
 		{
+			//await UniTask.WaitUntil(() => GameModeManager.CurrentGameMode == GameMode.InGame);
+
 			if (IsObtainableStatus)
 			{
-				obtainableObject = GetDetectedObtainableObj();
-				isObtainableObjDetected = (obtainableObject != null);
-
-				//TODO: 추후 ObjectInteractor에서 관리
-				//if (ObtainableObj != null)
-				//isObtainableObjDetected = CameraViewportObjectChecker.CheckObjSeenOnCamera(ObtainableObj.ObjTransform);
-			}
-			else
-			{
-				isObtainableObjDetected = false;
+				obtainableObject.Set(GetDetectedObtainableObj());
 			}
 
 			await UniTask.Yield(PlayerLoopTiming.FixedUpdate, cancellationToken);
@@ -50,17 +47,17 @@ public abstract class ObjectObtainmentHandlerBase : InteractionHandlerBase
 
 	#endregion
 	public abstract bool IsObtainableStatus { get; }
-
 	/// <summary>
-	/// Set obtainableObject here!
+	/// Process obtainableObject detection here
 	/// </summary>
+	/// <returns></returns>
 	protected abstract IObjectInfo GetDetectedObtainableObj();
 
 
 	public override bool canStartInteraction
 	{
 		get => PhaseChecker.GetCurrentPhase() >= 'B' &&
-			   isObtainableObjDetected &&
+			   IsObtainableObjectDetected &&
 			   obtainableObject.ObjInteractInfo.IsInteractive;
 	}
 	public override bool canEscapeInteraction
@@ -82,7 +79,7 @@ public abstract class ObjectObtainmentHandlerBase : InteractionHandlerBase
 	{
 		await StartObtainmentEffectAsync();
 
-		ProcessEnd().Forget();
+		ForceEndInteraction();
 	}
 	private async UniTask StartObtainmentEffectAsync()
 	{
@@ -105,8 +102,6 @@ public abstract class ObjectObtainmentHandlerBase : InteractionHandlerBase
 		// 2. 오브젝트 제거
 		if (obtainableObject.ObjTransform.gameObject.activeSelf)
 			obtainableObject.ObjTransform.gameObject.SetActive(false);
-		obtainableObject = null;
-		isObtainableObjDetected = false;
 
 		return UniTask.FromResult(true);
 	}
@@ -115,6 +110,7 @@ public abstract class ObjectObtainmentHandlerBase : InteractionHandlerBase
 	protected override void PostProcess(Action extraPostProcess)
 	{
 		extraPostProcess?.Invoke();
+		obtainableObject.Set(null);
 
 		PlayerStatusManager.SetInterStatus(PlayerStatusManager.PrevInterStatus);
 	}

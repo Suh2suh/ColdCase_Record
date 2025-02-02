@@ -59,6 +59,8 @@ public static class ObjectLerper
 			time += Time.deltaTime;
 			lerpT = time / duration;
 
+			//Debug.Log(objTransform.name + " Lerping... " + lerpT);
+
 			await UniTask.Yield(PlayerLoopTiming.FixedUpdate, cancellationToken);
 		}
 

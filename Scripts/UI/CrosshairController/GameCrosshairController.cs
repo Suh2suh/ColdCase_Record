@@ -42,7 +42,7 @@ public class GameCrosshairController : CrosshairController
 
     private void Update()
     {
-        if (GameModeManager.GetCurrentGameMode() == GameMode.InGame)
+        if (GameModeManager.CurrentGameMode == GameMode.InGame)
             ManageCHActivationUnder(PlayerStatusManager.CurrentInterStatus);
         else
             DeActivateCH();

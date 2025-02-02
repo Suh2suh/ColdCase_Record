@@ -147,47 +147,7 @@ public class SaveLoadManager : Singleton<SaveLoadManager>
 
 	}
 
-	/*
 
-	IEnumerator SavePlayerDataAsync()
-	{
-		string playerJsonDataContent = JsonUtility.ToJson(playerInfo);
-		//DataManager.WriteData(GetPlayerDataPath(), playerJsonDataContent);
-
-		Debug.Log(playerJsonDataContent);
-
-		string directory = Path.GetDirectoryName(GetPlayerDataPath());
-		if (!Directory.Exists(directory)) Directory.CreateDirectory(directory);
-
-		using (StreamWriter writer = new StreamWriter(GetPlayerDataPath()))
-		{
-			yield return writer.WriteAsync(playerJsonDataContent);
-		}
-
-
-		//Debug.Log("Tutorial: " + playerInfo.tutorialInfo.IsTutorialEnd);
-		//Debug.Log("[Saved]: " + currentPlace.name + " / " + playerJsonDataContent);
-		Debug.Log("[Saved]: " + playerJsonDataContent);
-	}
-
-	void LoadPlayerData()
-	{
-		string playerJsonDataContent = DataManager.ReadData(GetPlayerDataPath());
-
-		//PlayerInfo tempDataContainer = ScriptableObject.CreateInstance<PlayerInfo>();
-		PlayerInfo tempDataContainer = JsonConvert.DeserializeObject<PlayerInfo>(playerJsonDataContent);
-		JsonUtility.FromJsonOverwrite(playerJsonDataContent, tempDataContainer);
-
-		if (tempDataContainer.CurrentPlace == null)
-			playerInfo.CurrentPlace = playerInfo.GamePlaceInSequence[0];
-		else
-			playerInfo.CurrentPlace = tempDataContainer.CurrentPlace;
-
-
-
-	}
-
-	*/
 	#region PlaceInfo
 
 	IEnumerator SavePlaceDataAsync()
@@ -376,9 +336,7 @@ public class SaveLoadManager : Singleton<SaveLoadManager>
 
 	string GetPlaceSaveDataPath()
 	{
-		//string placeSaveFileName = currentPlace.name + ".json";
 		string placeSaveFileName = "Tutorial" + ".json";
-		//return (Path.Combine(DataManager.GetPlaceDataFolderPath(currentPlace), placeSaveFileName));
 		return (Path.Combine(DataManager.GetPlaceDataFolderPath(), placeSaveFileName));
 	}
 

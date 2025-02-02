@@ -23,7 +23,7 @@ public static class PlayerStatusManager
 			currentInterStatus = interStatus;
 
 			OnInteractionStatusUpdated();
-			Debug.Log(prevInterStatus + " -> " + currentInterStatus + " / " + prevInterStatus);
+			Debug.Log(prevInterStatus + " -> " + currentInterStatus);
 		}
 	}
 
