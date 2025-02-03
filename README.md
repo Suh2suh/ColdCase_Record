@@ -2,6 +2,14 @@
 # ColdCase🔍
 [<b>Video Link▶️</b>](https://www.youtube.com/watch?v=wL8jK-Ikid8)
 
+<b>Period</b>
+- 4 months(2024.03~2024.07)
+
+<b>Role(Contribution Rate)</b>
+- Programming(90/100): All, except sinematic effects(sequence scene, glitch)
+- Direction(5/100): Most Modules(Book, Dialogue downloder...)
+
+
 <b>Contents</b>
 - Preview
 - Folder Structure
@@ -24,6 +32,14 @@
   The folder that contains only imported packages or plugins, literally. Added for reason to avoid error or warning while navigating "Scripts" folder.
 
 - <b>Scripts (Main)</b>: The folder that contains codes written by me only.
-  - <b>~</b>: ~ this will be updated, since folder structure is re-organized today [250201]
+  - <b>BEFORE_BUILD</b>: Scripts that contain test codes only
+  - <b>Dialogue</b>: Scripts that contain dialogue codes only
+  - <b>Extensions</b>: Scripts that contain class extensions only (e.g.)Transform, Quaternion...
+  - <b>InGame</b>: Scripts only used in game scene
+  - <b>Media</b>: Scripts that contain audio/video related codes
+  - <b>Modules</b>: Components of utility
+  - <b>Types</b>: Common custom types used in game
+  - <b>UI</b>: Scrips that contain UI related codes only
+  - <b>Utility</b>: Utility Scripts (most are static)
   
 
